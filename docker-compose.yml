@@ -1,0 +1,45 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: gastrocontrol-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: gastrocontrol
+      MYSQL_USER: gastrocontrol
+      MYSQL_PASSWORD: gastrocontrol
+    ports:
+      - "3307:3306"   # host:container (localhost:3307 for tools)
+    volumes:
+      - gastro_mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - gastrocontrol-net
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gastrocontrol-api
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+    environment:
+      # these match your application.yaml placeholders
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: gastrocontrol
+      DB_USER: gastrocontrol
+      DB_PASSWORD: gastrocontrol
+      # if you ever add more env-based config, wire it here too
+    networks:
+      - gastrocontrol-net
+
+networks:
+  gastrocontrol-net:
+    driver: bridge
+
+volumes:
+  gastro_mysql_data:
