@@ -5,6 +5,7 @@ package com.gastrocontrol.gastrocontrol.entity.enums;
  */
 public enum UserRole {
     STAFF,
+    MANAGER,
     ADMIN,
     CUSTOMER
 }

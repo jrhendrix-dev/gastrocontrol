@@ -11,11 +11,7 @@ import com.gastrocontrol.gastrocontrol.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class CreateOrderUseCase {
@@ -28,13 +24,11 @@ public class CreateOrderUseCase {
     private final DiningTableRepository tableRepository;
     private final OrderEventRepository orderEventRepository;
 
-
     public CreateOrderUseCase(
             OrderRepository orderRepository,
             ProductRepository productRepository,
             DiningTableRepository tableRepository,
             OrderEventRepository orderEventRepository
-
     ) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
@@ -70,7 +64,6 @@ public class CreateOrderUseCase {
             errors.put("items", "At least one item is required");
         }
 
-        // We'll build these only for valid rows
         List<OrderItemJpaEntity> entityItems = new ArrayList<>();
         List<CreateOrderResult.CreatedOrderItem> resultItems = new ArrayList<>();
         int totalCents = 0;
@@ -91,7 +84,6 @@ public class CreateOrderUseCase {
                     errors.put(prefix + ".productId", "Product is not available");
                 }
 
-                // Add only valid items
                 if (product != null && product.isActive() && itemCmd.getQuantity() > 0) {
                     int unitPrice = product.getPriceCents();
                     int lineTotal = unitPrice * itemCmd.getQuantity();
@@ -99,7 +91,6 @@ public class CreateOrderUseCase {
                     totalCents += lineTotal;
 
                     entityItems.add(new OrderItemJpaEntity(product, itemCmd.getQuantity(), unitPrice));
-
                     resultItems.add(new CreateOrderResult.CreatedOrderItem(
                             product.getId(),
                             product.getName(),
@@ -120,10 +111,9 @@ public class CreateOrderUseCase {
         order.setType(OrderType.DINE_IN);
         order.setStatus(OrderStatus.PENDING);
         order.setDiningTable(table);
-        // createdAt will be set by @PrePersist in OrderJpaEntity
 
         for (OrderItemJpaEntity item : entityItems) {
-            order.addItem(item); // sets item.order too
+            order.addItem(item);
         }
 
         OrderJpaEntity saved = orderRepository.save(order);
@@ -134,11 +124,11 @@ public class CreateOrderUseCase {
                 null,
                 saved.getStatus(),
                 "Order created",
-                "STAFF"
+                "STAFF",
+                null,  // actorUserId (later from auth)
+                null   // reasonCode
         ));
 
-
-        assert table != null;
         return new CreateOrderResult(
                 saved.getId(),
                 table.getId(),

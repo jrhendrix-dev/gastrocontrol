@@ -28,6 +28,12 @@ spring:
     baseline-on-migrate: true
     clean-disabled: true   # safety: prevents accidental 'flyway clean'
 
+
+security:
+  jwt:
+    secret: "CHANGE_ME_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS"
+    expiration-seconds: 3600
+
 server:
   port: 8080
 

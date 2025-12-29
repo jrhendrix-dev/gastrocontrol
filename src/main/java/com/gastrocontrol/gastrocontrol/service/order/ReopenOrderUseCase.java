@@ -33,18 +33,17 @@ public class ReopenOrderUseCase {
 
         OrderStatus from = order.getStatus();
 
-        // “manager-only” action: we allow reopening from terminal-ish states.
         if (!Set.of(OrderStatus.READY, OrderStatus.SERVED, OrderStatus.CANCELLED).contains(from)) {
             throw new ValidationException(Map.of(
-                    "orderStatus",
-                    "Reopen is only allowed from READY, SERVED, or CANCELLED (current: " + from + ")"
+                    "orderStatus", "Reopen is only allowed from READY, SERVED, or CANCELLED (current: " + from + ")"
             ));
         }
 
-        // Decide where to reopen to (your Option 1):
         OrderStatus to = OrderStatus.IN_PREPARATION;
 
+        order.setClosedAt(null);
         order.setStatus(to);
+
         OrderJpaEntity saved = orderRepository.save(order);
 
         orderEventRepository.save(new OrderEventJpaEntity(
@@ -54,7 +53,7 @@ public class ReopenOrderUseCase {
                 to,
                 command.getMessage(),
                 "MANAGER",
-                null,                 // actor_user_id (later from auth)
+                null,                 // actorUserId later from JWT
                 command.getReasonCode()
         ));
     }

@@ -35,15 +35,15 @@ public class OrderEventJpaEntity {
     @Column(name = "actor_role", length = 30)
     private String actorRole;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
     @Column(name = "actor_user_id")
     private Long actorUserId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "reason_code", length = 50)
     private OrderEventReasonCode reasonCode;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
     protected OrderEventJpaEntity() {}
 
@@ -52,31 +52,6 @@ public class OrderEventJpaEntity {
         if (this.createdAt == null) {
             this.createdAt = Instant.now();
         }
-    }
-
-    //multiple constructors at the moment to keep retrocompatible
-
-    public OrderEventJpaEntity(
-            OrderJpaEntity order,
-            String eventType,
-            OrderStatus fromStatus,
-            OrderStatus toStatus,
-            String message,
-            String actorRole
-    ) {
-        this(order, eventType, fromStatus, toStatus, message, actorRole, null, null);
-    }
-
-    public OrderEventJpaEntity(
-            OrderJpaEntity order,
-            String eventType,
-            OrderStatus fromStatus,
-            OrderStatus toStatus,
-            String message,
-            String actorRole,
-            OrderEventReasonCode reasonCode
-    ) {
-        this(order, eventType, fromStatus, toStatus, message, actorRole, null, reasonCode);
     }
 
     public OrderEventJpaEntity(
@@ -95,10 +70,9 @@ public class OrderEventJpaEntity {
         this.toStatus = toStatus;
         this.message = message;
         this.actorRole = actorRole;
-        this.actorUserId = actorUserId;   // null for now
-        this.reasonCode = reasonCode;     // null allowed
+        this.actorUserId = actorUserId;   // null for now (until auth)
+        this.reasonCode = reasonCode;     // optional
     }
-
 
     public Long getId() { return id; }
     public OrderJpaEntity getOrder() { return order; }
@@ -107,7 +81,7 @@ public class OrderEventJpaEntity {
     public OrderStatus getToStatus() { return toStatus; }
     public String getMessage() { return message; }
     public String getActorRole() { return actorRole; }
+    public Long getActorUserId() { return actorUserId; }           // ✅
+    public OrderEventReasonCode getReasonCode() { return reasonCode; } // ✅
     public Instant getCreatedAt() { return createdAt; }
-    public Long getActorUserId() { return actorUserId; }
-    public OrderEventReasonCode getReasonCode() { return reasonCode; }
 }

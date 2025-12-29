@@ -9,6 +9,7 @@ import com.gastrocontrol.gastrocontrol.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +48,9 @@ public class ChangeOrderStatusUseCase {
         }
 
         order.setStatus(newStatus);
+        if (newStatus == OrderStatus.SERVED || newStatus == OrderStatus.CANCELLED) {
+            order.setClosedAt(Instant.now());
+        }
         OrderJpaEntity saved = orderRepository.save(order);
 
         orderEventRepository.save(new OrderEventJpaEntity(
@@ -55,7 +59,9 @@ public class ChangeOrderStatusUseCase {
                 oldStatus,
                 newStatus,
                 command.getMessage(),
-                "STAFF"
+                "STAFF",
+                null,  // actorUserId (later from auth/JWT)
+                null   // reasonCode (optional for normal transitions)
         ));
 
         return new ChangeOrderStatusResult(saved.getId(), oldStatus, newStatus);
