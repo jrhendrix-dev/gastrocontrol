@@ -9,12 +9,18 @@ services:
       MYSQL_USER: gastrocontrol
       MYSQL_PASSWORD: gastrocontrol
     ports:
-      - "3307:3306"   # host:container (localhost:3307 for tools)
+      - "3307:3306"
     volumes:
       - gastro_mysql_data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password
     networks:
       - gastrocontrol-net
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
 
   api:
     build:
@@ -23,17 +29,16 @@ services:
     container_name: gastrocontrol-api
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
-      # these match your application.yaml placeholders
       DB_HOST: db
       DB_PORT: 3306
       DB_NAME: gastrocontrol
       DB_USER: gastrocontrol
       DB_PASSWORD: gastrocontrol
-      # if you ever add more env-based config, wire it here too
     networks:
       - gastrocontrol-net
 
