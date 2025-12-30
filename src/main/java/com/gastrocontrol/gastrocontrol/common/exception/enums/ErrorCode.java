@@ -1,4 +1,4 @@
-// src/main/java/com/gastrocontrol/gastrocontrol/common/exception/ErrorCode.java
+// src/main/java/com/gastrocontrol/gastrocontrol/common/exception/enums/ErrorCode.java
 package com.gastrocontrol.gastrocontrol.common.exception.enums;
 
 /**
@@ -7,5 +7,7 @@ package com.gastrocontrol.gastrocontrol.common.exception.enums;
 public enum ErrorCode {
     VALIDATION_FAILED,
     NOT_FOUND,
-    BUSINESS_RULE_VIOLATION
+    BUSINESS_RULE_VIOLATION,
+    INTERNAL_ERROR
 }
+

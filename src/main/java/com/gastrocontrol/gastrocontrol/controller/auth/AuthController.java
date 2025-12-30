@@ -2,34 +2,36 @@ package com.gastrocontrol.gastrocontrol.controller.auth;
 
 import com.gastrocontrol.gastrocontrol.dto.auth.LoginRequest;
 import com.gastrocontrol.gastrocontrol.dto.auth.LoginResponse;
-import com.gastrocontrol.gastrocontrol.security.JwtService;
-import com.gastrocontrol.gastrocontrol.security.UserPrincipal;
+import com.gastrocontrol.gastrocontrol.dto.auth.RegisterRequest;
+import com.gastrocontrol.gastrocontrol.dto.auth.RegisterResponse;
+import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
+import com.gastrocontrol.gastrocontrol.service.auth.AuthService;
 import jakarta.validation.Valid;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
+    private final AuthService authService;
 
-    public AuthController(AuthenticationManager authenticationManager, JwtService jwtService) {
-        this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody RegisterRequest req) {
+        RegisterResponse created = authService.register(req);
+
+        return ResponseEntity.status(201).body(
+                ApiResponse.ok("User " + created.getEmail() + " successfully registered", created)
+        );
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
-        Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest req) {
+        String token = authService.login(req);
+        LoginResponse body = new LoginResponse(token);
 
-        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
-        String token = jwtService.generateToken(principal);
-        return new LoginResponse(token);
+        return ResponseEntity.ok(ApiResponse.ok("Login successful", body));
     }
 }

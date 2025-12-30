@@ -1,5 +1,6 @@
 package com.gastrocontrol.gastrocontrol.service.order;
 
+import com.gastrocontrol.gastrocontrol.common.exception.NotFoundException;
 import com.gastrocontrol.gastrocontrol.common.exception.ValidationException;
 import com.gastrocontrol.gastrocontrol.entity.*;
 import com.gastrocontrol.gastrocontrol.entity.enums.OrderStatus;
@@ -11,110 +12,66 @@ import com.gastrocontrol.gastrocontrol.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class CreateOrderUseCase {
 
-    private static final EnumSet<OrderStatus> OPEN_STATUSES =
-            EnumSet.of(OrderStatus.PENDING, OrderStatus.IN_PREPARATION, OrderStatus.READY);
-
     private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
-    private final DiningTableRepository tableRepository;
     private final OrderEventRepository orderEventRepository;
+    private final DiningTableRepository diningTableRepository;
+    private final ProductRepository productRepository;
 
     public CreateOrderUseCase(
             OrderRepository orderRepository,
-            ProductRepository productRepository,
-            DiningTableRepository tableRepository,
-            OrderEventRepository orderEventRepository
+            OrderEventRepository orderEventRepository,
+            DiningTableRepository diningTableRepository,
+            ProductRepository productRepository
     ) {
         this.orderRepository = orderRepository;
-        this.productRepository = productRepository;
-        this.tableRepository = tableRepository;
         this.orderEventRepository = orderEventRepository;
+        this.diningTableRepository = diningTableRepository;
+        this.productRepository = productRepository;
     }
 
     @Transactional
     public CreateOrderResult handle(CreateOrderCommand command) {
-        Map<String, String> errors = new HashMap<>();
-
-        // 1) Validate table
-        DiningTableJpaEntity table = tableRepository.findById(command.getTableId()).orElse(null);
-        if (table == null) {
-            errors.put("tableId", "Table does not exist");
-        } else {
-            boolean hasOpenOrder = orderRepository
-                    .findFirstByTypeAndDiningTable_IdAndStatusInOrderByCreatedAtDesc(
-                            OrderType.DINE_IN,
-                            table.getId(),
-                            OPEN_STATUSES
-                    )
-                    .isPresent();
-
-            if (hasOpenOrder) {
-                errors.put("tableId", "Table already has an open order");
-            }
+        if (command == null) throw new ValidationException(Map.of("command", "Command is required"));
+        if (command.getTableId() == null) throw new ValidationException(Map.of("tableId", "Table id is required"));
+        if (command.getItems() == null || command.getItems().isEmpty()) {
+            throw new ValidationException(Map.of("items", "At least one item is required"));
         }
 
-        // 2) Validate items
-        List<CreateOrderCommand.CreateOrderItem> items = command.getItems();
-        if (items == null || items.isEmpty()) {
-            errors.put("items", "At least one item is required");
-        }
+        DiningTableJpaEntity table = diningTableRepository.findById(command.getTableId())
+                .orElseThrow(() -> new NotFoundException("Dining table not found: " + command.getTableId()));
 
-        List<OrderItemJpaEntity> entityItems = new ArrayList<>();
-        List<CreateOrderResult.CreatedOrderItem> resultItems = new ArrayList<>();
+        OrderJpaEntity order = new OrderJpaEntity(OrderType.DINE_IN, OrderStatus.PENDING, table);
+
+        // Build items + compute total
         int totalCents = 0;
 
-        if (items != null) {
-            for (int index = 0; index < items.size(); index++) {
-                CreateOrderCommand.CreateOrderItem itemCmd = items.get(index);
-                String prefix = "items[" + index + "]";
-
-                if (itemCmd.getQuantity() <= 0) {
-                    errors.put(prefix + ".quantity", "Quantity must be greater than zero");
-                }
-
-                ProductJpaEntity product = productRepository.findById(itemCmd.getProductId()).orElse(null);
-                if (product == null) {
-                    errors.put(prefix + ".productId", "Product does not exist");
-                } else if (!product.isActive()) {
-                    errors.put(prefix + ".productId", "Product is not available");
-                }
-
-                if (product != null && product.isActive() && itemCmd.getQuantity() > 0) {
-                    int unitPrice = product.getPriceCents();
-                    int lineTotal = unitPrice * itemCmd.getQuantity();
-
-                    totalCents += lineTotal;
-
-                    entityItems.add(new OrderItemJpaEntity(product, itemCmd.getQuantity(), unitPrice));
-                    resultItems.add(new CreateOrderResult.CreatedOrderItem(
-                            product.getId(),
-                            product.getName(),
-                            itemCmd.getQuantity(),
-                            unitPrice
-                    ));
-                }
+        for (CreateOrderCommand.CreateOrderItem item : command.getItems()) {
+            if (item.getProductId() == null) {
+                throw new ValidationException(Map.of("productId", "Product id is required"));
             }
+            if (item.getQuantity() <= 0) {
+                throw new ValidationException(Map.of("quantity", "Quantity must be > 0"));
+            }
+
+            ProductJpaEntity product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new NotFoundException("Product not found: " + item.getProductId()));
+
+            int unitPriceCents = product.getPriceCents(); // assumes ProductJpaEntity has getPriceCents()
+            int lineTotal = unitPriceCents * item.getQuantity();
+            totalCents += lineTotal;
+
+            OrderItemJpaEntity oi = new OrderItemJpaEntity(product, item.getQuantity(), unitPriceCents);
+            order.addItem(oi);
         }
 
-        // 3) Stop early if invalid
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors);
-        }
-
-        // 4) Build + persist order entity
-        OrderJpaEntity order = new OrderJpaEntity();
-        order.setType(OrderType.DINE_IN);
-        order.setStatus(OrderStatus.PENDING);
-        order.setDiningTable(table);
-
-        for (OrderItemJpaEntity item : entityItems) {
-            order.addItem(item);
-        }
+        order.setTotalCents(totalCents);
 
         OrderJpaEntity saved = orderRepository.save(order);
 
@@ -125,14 +82,25 @@ public class CreateOrderUseCase {
                 saved.getStatus(),
                 "Order created",
                 "STAFF",
-                null,  // actorUserId (later from auth)
-                null   // reasonCode
+                null,
+                null
         ));
+
+        // Build result (includes item info)
+        List<CreateOrderResult.CreateOrderItemResult> resultItems =
+                saved.getItems().stream()
+                        .map(i -> new CreateOrderResult.CreateOrderItemResult(
+                                i.getProduct().getId(),
+                                i.getProduct().getName(),
+                                i.getQuantity(),
+                                i.getUnitPriceCents()
+                        ))
+                        .collect(Collectors.toList());
 
         return new CreateOrderResult(
                 saved.getId(),
-                table.getId(),
-                totalCents,
+                saved.getDiningTable().getId(),
+                saved.getTotalCents(),
                 saved.getStatus(),
                 resultItems
         );

@@ -28,6 +28,9 @@ public class OrderJpaEntity {
     @JoinColumn(name = "dining_table_id")
     private DiningTableJpaEntity diningTable;
 
+    @Column(name = "total_cents", nullable = false)
+    private int totalCents = 0;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -62,6 +65,7 @@ public class OrderJpaEntity {
         if (this.status == null) this.status = OrderStatus.PENDING;
         if (this.type == null) this.type = OrderType.DINE_IN;
         if (this.version == null) this.version = 0;
+        // totalCents already defaults to 0
     }
 
     @PreUpdate
@@ -76,6 +80,11 @@ public class OrderJpaEntity {
         item.setOrder(this);
     }
 
+    /** Convenience if you want the entity to own the invariant. */
+    public void setTotalCents(int totalCents) {
+        this.totalCents = totalCents;
+    }
+
     // -------- Getters / setters --------
 
     public Long getId() { return id; }
@@ -88,6 +97,8 @@ public class OrderJpaEntity {
 
     public DiningTableJpaEntity getDiningTable() { return diningTable; }
     public void setDiningTable(DiningTableJpaEntity diningTable) { this.diningTable = diningTable; }
+
+    public int getTotalCents() { return totalCents; }
 
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

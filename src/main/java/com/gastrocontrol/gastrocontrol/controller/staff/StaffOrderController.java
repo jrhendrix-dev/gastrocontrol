@@ -1,14 +1,12 @@
 // src/main/java/com/gastrocontrol/gastrocontrol/controller/staff/StaffOrderController.java
 package com.gastrocontrol.gastrocontrol.controller.staff;
 
+import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
+import com.gastrocontrol.gastrocontrol.dto.order.OrderDto;
 import com.gastrocontrol.gastrocontrol.dto.staff.ChangeOrderStatusRequest;
 import com.gastrocontrol.gastrocontrol.dto.staff.CreateOrderRequest;
 import com.gastrocontrol.gastrocontrol.dto.staff.OrderResponse;
-import com.gastrocontrol.gastrocontrol.service.order.ChangeOrderStatusCommand;
-import com.gastrocontrol.gastrocontrol.service.order.ChangeOrderStatusUseCase;
-import com.gastrocontrol.gastrocontrol.service.order.CreateOrderCommand;
-import com.gastrocontrol.gastrocontrol.service.order.CreateOrderResult;
-import com.gastrocontrol.gastrocontrol.service.order.CreateOrderUseCase;
+import com.gastrocontrol.gastrocontrol.service.order.*;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +17,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.gastrocontrol.gastrocontrol.dto.staff.ReopenOrderRequest;
-import com.gastrocontrol.gastrocontrol.service.order.ReopenOrderCommand;
-import com.gastrocontrol.gastrocontrol.service.order.ReopenOrderUseCase;
 
 /**
  * REST controller exposing staff-facing endpoints to manage dine-in orders.
@@ -81,19 +77,18 @@ public class StaffOrderController {
      * Body: { "newStatus": "IN_PREPARATION", "message": "Kitchen started" }
      */
     @PatchMapping("/{orderId}/status")
-    public ResponseEntity<Void> changeOrderStatus(
+    public ResponseEntity<ApiResponse<ChangeOrderStatusResult>> changeOrderStatus(
             @PathVariable Long orderId,
-            @Valid @RequestBody ChangeOrderStatusRequest request
+            @Valid @RequestBody ChangeOrderStatusRequest req
     ) {
-        ChangeOrderStatusCommand command = new ChangeOrderStatusCommand(
-                orderId,
-                request.getNewStatus(),
-                request.getMessage()
+        ChangeOrderStatusResult result = changeOrderStatusUseCase.handle(
+                new ChangeOrderStatusCommand(orderId, req.getNewStatus(), req.getMessage())
         );
 
-        changeOrderStatusUseCase.handle(command);
+        String msg = "Order " + result.getOrderId() + " status changed from "
+                + result.getOldStatus() + " to " + result.getNewStatus();
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.ok(msg, result));
     }
 
     private static List<CreateOrderRequest.OrderItemRequest> safeItems(CreateOrderRequest request) {
@@ -101,16 +96,21 @@ public class StaffOrderController {
     }
 
     @PostMapping("/{orderId}/actions/reopen")
-    public ResponseEntity<Void> reopen(
+    public ResponseEntity<ApiResponse<OrderDto>> reopen(
             @PathVariable Long orderId,
-            @Valid @RequestBody ReopenOrderRequest request
+            @Valid @RequestBody ReopenOrderRequest req
     ) {
-        reopenOrderUseCase.handle(new ReopenOrderCommand(
-                orderId,
-                request.getReasonCode(),
-                request.getMessage()
+        OrderDto order = reopenOrderUseCase.handle(
+                new ReopenOrderCommand(orderId, req.getReasonCode(), req.getMessage())
+        );
+
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Order reopened: " + order.getId() + " (status=" + order.getStatus() + ")",
+                order
         ));
-        return ResponseEntity.noContent().build();
     }
+
+
+
 
 }
