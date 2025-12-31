@@ -31,8 +31,15 @@ spring:
 
 security:
   jwt:
-    secret: "CHANGE_ME_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS"
-    expiration-seconds: 3600
+    secret: ${JWT_SECRET}
+    expiration-seconds: 900 # access token, e.g. 15 minutes
+  refresh:
+    expiration-days: 14
+    cookie:
+      name: refresh_token
+      same-site: Lax      # dev-friendly; prod often None
+      secure: false       # prod true
+
 
 server:
   port: 8080
