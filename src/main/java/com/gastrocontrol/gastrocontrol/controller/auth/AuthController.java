@@ -2,6 +2,7 @@ package com.gastrocontrol.gastrocontrol.controller.auth;
 
 import com.gastrocontrol.gastrocontrol.dto.auth.*;
 import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
+import com.gastrocontrol.gastrocontrol.security.UserPrincipal;
 import com.gastrocontrol.gastrocontrol.service.auth.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -78,6 +80,12 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("Logged out"));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<MeResponse>> me(@AuthenticationPrincipal UserPrincipal principal) {
+        MeResponse body = authService.me(principal);
+        return ResponseEntity.ok(ApiResponse.ok("Me", body));
+    }
+
     private void setRefreshCookie(HttpServletResponse response, String refreshTokenRaw) {
         ResponseCookie cookie = ResponseCookie.from(refreshCookieName, refreshTokenRaw)
                 .httpOnly(true)
@@ -106,4 +114,6 @@ public class AuthController {
         // If you later add a reverse proxy, you can use X-Forwarded-For here.
         return request.getRemoteAddr();
     }
+
+
 }

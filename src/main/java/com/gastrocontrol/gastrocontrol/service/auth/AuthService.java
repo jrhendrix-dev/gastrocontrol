@@ -3,11 +3,7 @@ package com.gastrocontrol.gastrocontrol.service.auth;
 import com.gastrocontrol.gastrocontrol.common.exception.BusinessRuleViolationException;
 import com.gastrocontrol.gastrocontrol.common.exception.NotFoundException;
 import com.gastrocontrol.gastrocontrol.common.exception.ValidationException;
-import com.gastrocontrol.gastrocontrol.dto.auth.LoginRequest;
-import com.gastrocontrol.gastrocontrol.dto.auth.LoginResponse;
-import com.gastrocontrol.gastrocontrol.dto.auth.RefreshResponse;
-import com.gastrocontrol.gastrocontrol.dto.auth.RegisterRequest;
-import com.gastrocontrol.gastrocontrol.dto.auth.RegisterResponse;
+import com.gastrocontrol.gastrocontrol.dto.auth.*;
 import com.gastrocontrol.gastrocontrol.entity.RefreshTokenJpaEntity;
 import com.gastrocontrol.gastrocontrol.entity.UserJpaEntity;
 import com.gastrocontrol.gastrocontrol.entity.enums.UserRole;
@@ -101,6 +97,8 @@ public class AuthService {
             throw new BusinessRuleViolationException(Map.of("account", "User is disabled"));
         }
 
+        user.setLastLoginAt(Instant.now());
+
         String accessToken = jwtService.generateToken(new UserPrincipal(user));
 
         // Create refresh token (random string), store only hash
@@ -116,6 +114,8 @@ public class AuthService {
                 ip,
                 userAgent
         ));
+
+
 
         return new AuthLoginResult(
                 new LoginResponse(accessToken, "Bearer", accessExpirationSeconds),
@@ -183,6 +183,30 @@ public class AuthService {
             }
         });
     }
+
+    // ---------------- Me --------------------
+    @Transactional
+    public MeResponse me(UserPrincipal principal) {
+        if (principal == null) {
+            throw new ValidationException(Map.of("auth", "Not authenticated"));
+        }
+
+        UserJpaEntity user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        return new MeResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getRole(),
+                user.isActive(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhone(),
+                user.getCreatedAt(),
+                user.getLastLoginAt()
+        );
+    }
+
 
     // ---------------- Helpers ----------------
 
