@@ -1,8 +1,14 @@
+// src/main/java/com/gastrocontrol/gastrocontrol/service/order/CreateOrderUseCase.java
 package com.gastrocontrol.gastrocontrol.service.order;
 
 import com.gastrocontrol.gastrocontrol.common.exception.NotFoundException;
 import com.gastrocontrol.gastrocontrol.common.exception.ValidationException;
-import com.gastrocontrol.gastrocontrol.entity.*;
+import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
+import com.gastrocontrol.gastrocontrol.entity.DiningTableJpaEntity;
+import com.gastrocontrol.gastrocontrol.entity.OrderEventJpaEntity;
+import com.gastrocontrol.gastrocontrol.entity.OrderItemJpaEntity;
+import com.gastrocontrol.gastrocontrol.entity.OrderJpaEntity;
+import com.gastrocontrol.gastrocontrol.entity.ProductJpaEntity;
 import com.gastrocontrol.gastrocontrol.entity.enums.OrderStatus;
 import com.gastrocontrol.gastrocontrol.entity.enums.OrderType;
 import com.gastrocontrol.gastrocontrol.repository.DiningTableRepository;
@@ -39,15 +45,49 @@ public class CreateOrderUseCase {
     @Transactional
     public CreateOrderResult handle(CreateOrderCommand command) {
         if (command == null) throw new ValidationException(Map.of("command", "Command is required"));
-        if (command.getTableId() == null) throw new ValidationException(Map.of("tableId", "Table id is required"));
+
+        OrderType type = command.getType() == null ? OrderType.DINE_IN : command.getType();
+
         if (command.getItems() == null || command.getItems().isEmpty()) {
             throw new ValidationException(Map.of("items", "At least one item is required"));
         }
 
-        DiningTableJpaEntity table = diningTableRepository.findById(command.getTableId())
-                .orElseThrow(() -> new NotFoundException("Dining table not found: " + command.getTableId()));
+        DiningTableJpaEntity table = null;
 
-        OrderJpaEntity order = new OrderJpaEntity(OrderType.DINE_IN, OrderStatus.PENDING, table);
+        if (type == OrderType.DINE_IN) {
+            if (command.getTableId() == null) {
+                throw new ValidationException(Map.of("tableId", "Table id is required for DINE_IN"));
+            }
+            table = diningTableRepository.findById(command.getTableId())
+                    .orElseThrow(() -> new NotFoundException("Dining table not found: " + command.getTableId()));
+        }
+
+        if (type == OrderType.DELIVERY) {
+            validateDelivery(command.getDelivery());
+        }
+
+        OrderJpaEntity order = new OrderJpaEntity(type, OrderStatus.PENDING, table);
+
+        // Apply delivery snapshot (only for DELIVERY)
+        if (type == OrderType.DELIVERY) {
+            DeliverySnapshotDto d = command.getDelivery();
+            order.setDeliveryName(trimOrNull(d.name()));
+            order.setDeliveryPhone(trimOrNull(d.phone()));
+            order.setDeliveryAddressLine1(trimOrNull(d.addressLine1()));
+            order.setDeliveryAddressLine2(trimOrNull(d.addressLine2()));
+            order.setDeliveryCity(trimOrNull(d.city()));
+            order.setDeliveryPostalCode(trimOrNull(d.postalCode()));
+            order.setDeliveryNotes(trimOrNull(d.notes()));
+        } else {
+            // ensure empty for non-delivery
+            order.setDeliveryName(null);
+            order.setDeliveryPhone(null);
+            order.setDeliveryAddressLine1(null);
+            order.setDeliveryAddressLine2(null);
+            order.setDeliveryCity(null);
+            order.setDeliveryPostalCode(null);
+            order.setDeliveryNotes(null);
+        }
 
         // Build items + compute total
         int totalCents = 0;
@@ -63,7 +103,7 @@ public class CreateOrderUseCase {
             ProductJpaEntity product = productRepository.findById(item.getProductId())
                     .orElseThrow(() -> new NotFoundException("Product not found: " + item.getProductId()));
 
-            int unitPriceCents = product.getPriceCents(); // assumes ProductJpaEntity has getPriceCents()
+            int unitPriceCents = product.getPriceCents();
             int lineTotal = unitPriceCents * item.getQuantity();
             totalCents += lineTotal;
 
@@ -86,7 +126,6 @@ public class CreateOrderUseCase {
                 null
         ));
 
-        // Build result (includes item info)
         List<CreateOrderResult.CreateOrderItemResult> resultItems =
                 saved.getItems().stream()
                         .map(i -> new CreateOrderResult.CreateOrderItemResult(
@@ -97,12 +136,46 @@ public class CreateOrderUseCase {
                         ))
                         .collect(Collectors.toList());
 
+        DeliverySnapshotDto resultDelivery = null;
+        if (saved.getType() == OrderType.DELIVERY) {
+            resultDelivery = new DeliverySnapshotDto(
+                    saved.getDeliveryName(),
+                    saved.getDeliveryPhone(),
+                    saved.getDeliveryAddressLine1(),
+                    saved.getDeliveryAddressLine2(),
+                    saved.getDeliveryCity(),
+                    saved.getDeliveryPostalCode(),
+                    saved.getDeliveryNotes()
+            );
+        }
+
         return new CreateOrderResult(
                 saved.getId(),
-                saved.getDiningTable().getId(),
+                saved.getType(),
+                saved.getDiningTable() == null ? null : saved.getDiningTable().getId(),
                 saved.getTotalCents(),
                 saved.getStatus(),
+                resultDelivery,
                 resultItems
         );
+    }
+
+    private static void validateDelivery(DeliverySnapshotDto d) {
+        if (d == null) throw new ValidationException(Map.of("delivery", "Delivery details are required for DELIVERY orders"));
+
+        if (isBlank(d.name())) throw new ValidationException(Map.of("delivery.name", "Name is required"));
+        if (isBlank(d.phone())) throw new ValidationException(Map.of("delivery.phone", "Phone is required"));
+        if (isBlank(d.addressLine1())) throw new ValidationException(Map.of("delivery.addressLine1", "Address line 1 is required"));
+        if (isBlank(d.city())) throw new ValidationException(Map.of("delivery.city", "City is required"));
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
+
+    private static String trimOrNull(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 }

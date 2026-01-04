@@ -16,6 +16,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import com.gastrocontrol.gastrocontrol.security.RestAccessDeniedHandler;
+import com.gastrocontrol.gastrocontrol.security.RestAuthenticationEntryPoint;
+
 
 @Configuration
 @EnableMethodSecurity
@@ -25,24 +28,25 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsService userDetailsService; // your CustomUserDetailsService bean
 
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final RestAccessDeniedHandler restAccessDeniedHandler;
+
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(eh -> eh
+                        .authenticationEntryPoint(restAuthenticationEntryPoint) // 401
+                        .accessDeniedHandler(restAccessDeniedHandler)           // 403
+                )
                 .authorizeHttpRequests(auth -> auth
-                        // preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // public
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/actuator/health", "/error").permitAll()
-
-                        // role-based
                         .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "MANAGER")
                         .requestMatchers("/api/manager/**").hasRole("MANAGER")
-
-                        // everything else
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(daoAuthProvider())

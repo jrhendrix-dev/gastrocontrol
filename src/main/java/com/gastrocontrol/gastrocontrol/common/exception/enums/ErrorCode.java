@@ -8,6 +8,9 @@ public enum ErrorCode {
     VALIDATION_FAILED,
     NOT_FOUND,
     BUSINESS_RULE_VIOLATION,
+
+    UNAUTHORIZED,
+    FORBIDDEN,
+
     INTERNAL_ERROR
 }
-

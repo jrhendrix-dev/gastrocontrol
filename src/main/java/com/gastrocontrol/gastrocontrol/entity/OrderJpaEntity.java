@@ -47,6 +47,28 @@ public class OrderJpaEntity {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemJpaEntity> items = new ArrayList<>();
 
+    // Delivery snapshot fields (nullable; required only for DELIVERY orders)
+    @Column(name = "delivery_name", length = 120)
+    private String deliveryName;
+
+    @Column(name = "delivery_phone", length = 30)
+    private String deliveryPhone;
+
+    @Column(name = "delivery_address_line1", length = 190)
+    private String deliveryAddressLine1;
+
+    @Column(name = "delivery_address_line2", length = 190)
+    private String deliveryAddressLine2;
+
+    @Column(name = "delivery_city", length = 120)
+    private String deliveryCity;
+
+    @Column(name = "delivery_postal_code", length = 20)
+    private String deliveryPostalCode;
+
+    @Column(name = "delivery_notes", length = 500)
+    private String deliveryNotes;
+
     public OrderJpaEntity() {}
 
     /** Use this in services; keeps invariants together. */
@@ -109,4 +131,25 @@ public class OrderJpaEntity {
     public Integer getVersion() { return version; }
 
     public List<OrderItemJpaEntity> getItems() { return items; }
+
+    public String getDeliveryName() { return deliveryName; }
+    public void setDeliveryName(String deliveryName) { this.deliveryName = deliveryName; }
+
+    public String getDeliveryPhone() { return deliveryPhone; }
+    public void setDeliveryPhone(String deliveryPhone) { this.deliveryPhone = deliveryPhone; }
+
+    public String getDeliveryAddressLine1() { return deliveryAddressLine1; }
+    public void setDeliveryAddressLine1(String deliveryAddressLine1) { this.deliveryAddressLine1 = deliveryAddressLine1; }
+
+    public String getDeliveryAddressLine2() { return deliveryAddressLine2; }
+    public void setDeliveryAddressLine2(String deliveryAddressLine2) { this.deliveryAddressLine2 = deliveryAddressLine2; }
+
+    public String getDeliveryCity() { return deliveryCity; }
+    public void setDeliveryCity(String deliveryCity) { this.deliveryCity = deliveryCity; }
+
+    public String getDeliveryPostalCode() { return deliveryPostalCode; }
+    public void setDeliveryPostalCode(String deliveryPostalCode) { this.deliveryPostalCode = deliveryPostalCode; }
+
+    public String getDeliveryNotes() { return deliveryNotes; }
+    public void setDeliveryNotes(String deliveryNotes) { this.deliveryNotes = deliveryNotes; }
 }

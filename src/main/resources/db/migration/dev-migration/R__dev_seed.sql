@@ -25,11 +25,11 @@ VALUES
      '$2b$12$EIB.hrUar3nFL66VsngcbeAUrMQMvbdyHzj33QJXOYmm6kkVflh4O',
      'CUSTOMER', 1, NOW(), 'Ana', 'Perez', '600111222')
 ON DUPLICATE KEY UPDATE
-                     -- keep the role in sync for dev (optional)
+                     -- keep these in sync in dev (optional)
                      role = VALUES(role),
                      active = VALUES(active),
 
-                     -- don’t overwrite existing profile data unless it’s missing
+                     -- backfill only if missing
                      first_name = CASE
                                       WHEN users.first_name IS NULL OR users.first_name = '' THEN VALUES(first_name)
                                       ELSE users.first_name
@@ -43,6 +43,29 @@ ON DUPLICATE KEY UPDATE
                                  ELSE users.phone
                          END;
 
+-- =========================
+-- BACKFILL: any other users created via API
+-- fill missing first_name/last_name/phone with "random-ish" deterministic values
+-- =========================
+
+UPDATE users u
+    JOIN (
+        SELECT
+            id,
+            -- pick from a small list using MOD on id (stable across runs)
+            ELT(MOD(id, 8) + 1, 'Alex', 'Sam', 'Taylor', 'Chris', 'Jordan', 'Casey', 'Morgan', 'Jamie') AS fn,
+            ELT(MOD(id, 8) + 1, 'Smith', 'Johnson', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Anderson') AS ln,
+            CONCAT('6', LPAD(MOD(id * 7919, 100000000), 8, '0')) AS ph
+        FROM users
+    ) x ON x.id = u.id
+SET
+    u.first_name = CASE WHEN u.first_name IS NULL OR u.first_name = '' THEN x.fn ELSE u.first_name END,
+    u.last_name  = CASE WHEN u.last_name  IS NULL OR u.last_name  = '' THEN x.ln ELSE u.last_name  END,
+    u.phone      = CASE WHEN u.phone      IS NULL OR u.phone      = '' THEN x.ph ELSE u.phone      END
+WHERE
+    (u.first_name IS NULL OR u.first_name = '')
+   OR (u.last_name  IS NULL OR u.last_name  = '')
+   OR (u.phone      IS NULL OR u.phone      = '');
 
 -- =========================
 -- SAMPLE ORDER (PENDING) FOR TABLE 1 + ITEMS

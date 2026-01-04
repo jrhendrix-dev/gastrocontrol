@@ -2,11 +2,20 @@
 package com.gastrocontrol.gastrocontrol.controller.staff;
 
 import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
+import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.order.OrderDto;
 import com.gastrocontrol.gastrocontrol.dto.staff.ChangeOrderStatusRequest;
 import com.gastrocontrol.gastrocontrol.dto.staff.CreateOrderRequest;
 import com.gastrocontrol.gastrocontrol.dto.staff.OrderResponse;
-import com.gastrocontrol.gastrocontrol.service.order.*;
+import com.gastrocontrol.gastrocontrol.dto.staff.ReopenOrderRequest;
+import com.gastrocontrol.gastrocontrol.service.order.ChangeOrderStatusCommand;
+import com.gastrocontrol.gastrocontrol.service.order.ChangeOrderStatusResult;
+import com.gastrocontrol.gastrocontrol.service.order.ChangeOrderStatusUseCase;
+import com.gastrocontrol.gastrocontrol.service.order.CreateOrderCommand;
+import com.gastrocontrol.gastrocontrol.service.order.CreateOrderResult;
+import com.gastrocontrol.gastrocontrol.service.order.CreateOrderUseCase;
+import com.gastrocontrol.gastrocontrol.service.order.ReopenOrderCommand;
+import com.gastrocontrol.gastrocontrol.service.order.ReopenOrderUseCase;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,11 +25,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.gastrocontrol.gastrocontrol.dto.staff.ReopenOrderRequest;
-
-/**
- * REST controller exposing staff-facing endpoints to manage dine-in orders.
- */
 @RestController
 @RequestMapping("/api/staff/orders")
 public class StaffOrderController {
@@ -39,13 +43,27 @@ public class StaffOrderController {
         this.reopenOrderUseCase = reopenOrderUseCase;
     }
 
-    /**
-     * Creates a new dine-in order for a given table.
-     */
     @PostMapping
-    public ResponseEntity<OrderResponse> createDineInOrder(@Valid @RequestBody CreateOrderRequest request) {
+    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
+
+        DeliverySnapshotDto delivery = null;
+        if (request.getDelivery() != null) {
+            var d = request.getDelivery();
+            delivery = new DeliverySnapshotDto(
+                    d.getName(),
+                    d.getPhone(),
+                    d.getAddressLine1(),
+                    d.getAddressLine2(),
+                    d.getCity(),
+                    d.getPostalCode(),
+                    d.getNotes()
+            );
+        }
+
         CreateOrderCommand command = new CreateOrderCommand(
+                request.getType(),
                 request.getTableId(),
+                delivery,
                 safeItems(request).stream()
                         .map(i -> new CreateOrderCommand.CreateOrderItem(i.getProductId(), i.getQuantity()))
                         .collect(Collectors.toList())
@@ -70,12 +88,6 @@ public class StaffOrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Updates the status of an existing order.
-     *
-     * PATCH /api/staff/orders/{orderId}/status
-     * Body: { "newStatus": "IN_PREPARATION", "message": "Kitchen started" }
-     */
     @PatchMapping("/{orderId}/status")
     public ResponseEntity<ApiResponse<ChangeOrderStatusResult>> changeOrderStatus(
             @PathVariable Long orderId,
@@ -89,10 +101,6 @@ public class StaffOrderController {
                 + result.getOldStatus() + " to " + result.getNewStatus();
 
         return ResponseEntity.ok(ApiResponse.ok(msg, result));
-    }
-
-    private static List<CreateOrderRequest.OrderItemRequest> safeItems(CreateOrderRequest request) {
-        return request.getItems() == null ? Collections.emptyList() : request.getItems();
     }
 
     @PostMapping("/{orderId}/actions/reopen")
@@ -110,7 +118,7 @@ public class StaffOrderController {
         ));
     }
 
-
-
-
+    private static List<CreateOrderRequest.OrderItemRequest> safeItems(CreateOrderRequest request) {
+        return request.getItems() == null ? Collections.emptyList() : request.getItems();
+    }
 }
