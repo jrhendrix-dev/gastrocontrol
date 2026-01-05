@@ -2,6 +2,7 @@
 package com.gastrocontrol.gastrocontrol.service.order;
 
 import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
+import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
 import com.gastrocontrol.gastrocontrol.entity.enums.OrderStatus;
 import com.gastrocontrol.gastrocontrol.entity.enums.OrderType;
 
@@ -11,10 +12,11 @@ public class CreateOrderResult {
 
     private final Long orderId;
     private final OrderType type;
-    private final Long tableId; // nullable for TAKE_AWAY / DELIVERY
+    private final Long tableId;
     private final int totalCents;
     private final OrderStatus status;
     private final DeliverySnapshotDto delivery; // nullable unless DELIVERY
+    private final PickupSnapshotDto pickup;     // nullable unless TAKE_AWAY
     private final List<CreateOrderItemResult> items;
 
     public CreateOrderResult(
@@ -24,6 +26,7 @@ public class CreateOrderResult {
             int totalCents,
             OrderStatus status,
             DeliverySnapshotDto delivery,
+            PickupSnapshotDto pickup,
             List<CreateOrderItemResult> items
     ) {
         this.orderId = orderId;
@@ -32,6 +35,7 @@ public class CreateOrderResult {
         this.totalCents = totalCents;
         this.status = status;
         this.delivery = delivery;
+        this.pickup = pickup;
         this.items = items;
     }
 
@@ -41,6 +45,7 @@ public class CreateOrderResult {
     public int getTotalCents() { return totalCents; }
     public OrderStatus getStatus() { return status; }
     public DeliverySnapshotDto getDelivery() { return delivery; }
+    public PickupSnapshotDto getPickup() { return pickup; }
     public List<CreateOrderItemResult> getItems() { return items; }
 
     public static class CreateOrderItemResult {

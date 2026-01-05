@@ -1,3 +1,4 @@
+// src/main/java/com/gastrocontrol/gastrocontrol/mapper/order/OrderMapper.java
 package com.gastrocontrol.gastrocontrol.mapper.order;
 
 import com.gastrocontrol.gastrocontrol.dto.order.OrderDto;
@@ -19,9 +20,11 @@ public final class OrderMapper {
                 ))
                 .collect(Collectors.toList());
 
+        Long tableId = order.getDiningTable() == null ? null : order.getDiningTable().getId();
+
         return new OrderDto(
                 order.getId(),
-                order.getDiningTable().getId(),
+                tableId,
                 order.getTotalCents(),
                 order.getStatus(),
                 order.getCreatedAt(),

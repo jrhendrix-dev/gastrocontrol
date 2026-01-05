@@ -69,6 +69,17 @@ public class OrderJpaEntity {
     @Column(name = "delivery_notes", length = 500)
     private String deliveryNotes;
 
+    // Pickup snapshot fields (nullable; required only for TAKE_AWAY orders)
+    @Column(name = "pickup_name", length = 120)
+    private String pickupName;
+
+    @Column(name = "pickup_phone", length = 30)
+    private String pickupPhone;
+
+    @Column(name = "pickup_notes", length = 500)
+    private String pickupNotes;
+
+
     public OrderJpaEntity() {}
 
     /** Use this in services; keeps invariants together. */
@@ -152,4 +163,14 @@ public class OrderJpaEntity {
 
     public String getDeliveryNotes() { return deliveryNotes; }
     public void setDeliveryNotes(String deliveryNotes) { this.deliveryNotes = deliveryNotes; }
+
+    public String getPickupName() { return pickupName; }
+    public void setPickupName(String pickupName) { this.pickupName = pickupName; }
+
+    public String getPickupPhone() { return pickupPhone; }
+    public void setPickupPhone(String pickupPhone) { this.pickupPhone = pickupPhone; }
+
+    public String getPickupNotes() { return pickupNotes; }
+    public void setPickupNotes(String pickupNotes) { this.pickupNotes = pickupNotes; }
+
 }

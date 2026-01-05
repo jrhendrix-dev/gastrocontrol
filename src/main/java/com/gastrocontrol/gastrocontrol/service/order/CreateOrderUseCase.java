@@ -4,6 +4,7 @@ package com.gastrocontrol.gastrocontrol.service.order;
 import com.gastrocontrol.gastrocontrol.common.exception.NotFoundException;
 import com.gastrocontrol.gastrocontrol.common.exception.ValidationException;
 import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
+import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
 import com.gastrocontrol.gastrocontrol.entity.DiningTableJpaEntity;
 import com.gastrocontrol.gastrocontrol.entity.OrderEventJpaEntity;
 import com.gastrocontrol.gastrocontrol.entity.OrderItemJpaEntity;
@@ -22,6 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Use case responsible for creating orders (DINE_IN / TAKE_AWAY / DELIVERY).
+ * Validates type-specific inputs and snapshots relevant details into the Order entity.
+ */
 @Service
 public class CreateOrderUseCase {
 
@@ -52,6 +57,14 @@ public class CreateOrderUseCase {
             throw new ValidationException(Map.of("items", "At least one item is required"));
         }
 
+        // Reject irrelevant blocks (prevents silent bad requests)
+        if (type != OrderType.DELIVERY && command.getDelivery() != null) {
+            throw new ValidationException(Map.of("delivery", "Delivery details are only allowed for DELIVERY orders"));
+        }
+        if (type != OrderType.TAKE_AWAY && command.getPickup() != null) {
+            throw new ValidationException(Map.of("pickup", "Pickup details are only allowed for TAKE_AWAY orders"));
+        }
+
         DiningTableJpaEntity table = null;
 
         if (type == OrderType.DINE_IN) {
@@ -64,6 +77,10 @@ public class CreateOrderUseCase {
 
         if (type == OrderType.DELIVERY) {
             validateDelivery(command.getDelivery());
+        }
+
+        if (type == OrderType.TAKE_AWAY) {
+            validatePickup(command.getPickup());
         }
 
         OrderJpaEntity order = new OrderJpaEntity(type, OrderStatus.PENDING, table);
@@ -79,7 +96,6 @@ public class CreateOrderUseCase {
             order.setDeliveryPostalCode(trimOrNull(d.postalCode()));
             order.setDeliveryNotes(trimOrNull(d.notes()));
         } else {
-            // ensure empty for non-delivery
             order.setDeliveryName(null);
             order.setDeliveryPhone(null);
             order.setDeliveryAddressLine1(null);
@@ -87,6 +103,18 @@ public class CreateOrderUseCase {
             order.setDeliveryCity(null);
             order.setDeliveryPostalCode(null);
             order.setDeliveryNotes(null);
+        }
+
+        // Apply pickup snapshot (only for TAKE_AWAY)
+        if (type == OrderType.TAKE_AWAY) {
+            PickupSnapshotDto p = command.getPickup();
+            order.setPickupName(trimOrNull(p.name()));
+            order.setPickupPhone(trimOrNull(p.phone()));
+            order.setPickupNotes(trimOrNull(p.notes()));
+        } else {
+            order.setPickupName(null);
+            order.setPickupPhone(null);
+            order.setPickupNotes(null);
         }
 
         // Build items + compute total
@@ -149,6 +177,15 @@ public class CreateOrderUseCase {
             );
         }
 
+        PickupSnapshotDto resultPickup = null;
+        if (saved.getType() == OrderType.TAKE_AWAY) {
+            resultPickup = new PickupSnapshotDto(
+                    saved.getPickupName(),
+                    saved.getPickupPhone(),
+                    saved.getPickupNotes()
+            );
+        }
+
         return new CreateOrderResult(
                 saved.getId(),
                 saved.getType(),
@@ -156,6 +193,7 @@ public class CreateOrderUseCase {
                 saved.getTotalCents(),
                 saved.getStatus(),
                 resultDelivery,
+                resultPickup,
                 resultItems
         );
     }
@@ -167,6 +205,12 @@ public class CreateOrderUseCase {
         if (isBlank(d.phone())) throw new ValidationException(Map.of("delivery.phone", "Phone is required"));
         if (isBlank(d.addressLine1())) throw new ValidationException(Map.of("delivery.addressLine1", "Address line 1 is required"));
         if (isBlank(d.city())) throw new ValidationException(Map.of("delivery.city", "City is required"));
+    }
+
+    private static void validatePickup(PickupSnapshotDto p) {
+        if (p == null) throw new ValidationException(Map.of("pickup", "Pickup details are required for TAKE_AWAY orders"));
+        if (isBlank(p.name())) throw new ValidationException(Map.of("pickup.name", "Name is required"));
+        // phone optional; add later if you want
     }
 
     private static boolean isBlank(String s) {

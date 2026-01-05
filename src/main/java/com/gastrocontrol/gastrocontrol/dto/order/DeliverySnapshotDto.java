@@ -3,6 +3,12 @@ package com.gastrocontrol.gastrocontrol.dto.order;
 
 import jakarta.validation.constraints.Size;
 
+/**
+ * Snapshot of delivery information captured at order creation time.
+ * <p>
+ * This is intentionally a snapshot (not a Customer entity) so that the order keeps the
+ * exact delivery details even if a customer's data changes later.
+ */
 public record DeliverySnapshotDto(
         @Size(max = 120) String name,
         @Size(max = 30) String phone,

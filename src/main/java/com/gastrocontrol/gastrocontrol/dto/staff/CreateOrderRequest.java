@@ -1,3 +1,4 @@
+// src/main/java/com/gastrocontrol/gastrocontrol/dto/staff/CreateOrderRequest.java
 package com.gastrocontrol.gastrocontrol.dto.staff;
 
 import com.gastrocontrol.gastrocontrol.entity.enums.OrderType;
@@ -17,6 +18,9 @@ public class CreateOrderRequest {
     @Valid
     private DeliveryDetailsRequest delivery; // required if DELIVERY
 
+    @Valid
+    private PickupDetailsRequest pickup; // required if TAKE_AWAY
+
     @NotEmpty
     @Valid
     private List<OrderItemRequest> items;
@@ -29,6 +33,9 @@ public class CreateOrderRequest {
 
     public DeliveryDetailsRequest getDelivery() { return delivery; }
     public void setDelivery(DeliveryDetailsRequest delivery) { this.delivery = delivery; }
+
+    public PickupDetailsRequest getPickup() { return pickup; }
+    public void setPickup(PickupDetailsRequest pickup) { this.pickup = pickup; }
 
     public List<OrderItemRequest> getItems() { return items; }
     public void setItems(List<OrderItemRequest> items) { this.items = items; }
@@ -72,6 +79,21 @@ public class CreateOrderRequest {
 
         public String getPostalCode() { return postalCode; }
         public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
+
+        public String getNotes() { return notes; }
+        public void setNotes(String notes) { this.notes = notes; }
+    }
+
+    public static class PickupDetailsRequest {
+        private String name;
+        private String phone;
+        private String notes;
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+
+        public String getPhone() { return phone; }
+        public void setPhone(String phone) { this.phone = phone; }
 
         public String getNotes() { return notes; }
         public void setNotes(String notes) { this.notes = notes; }
