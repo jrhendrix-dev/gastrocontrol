@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<ProductJpaEntity, Long>, JpaSpecificationExecutor<ProductJpaEntity> {
@@ -17,4 +18,8 @@ public interface ProductRepository extends JpaRepository<ProductJpaEntity, Long>
 
     @EntityGraph(attributePaths = {"category"})
     Page<ProductJpaEntity> findAll(org.springframework.data.jpa.domain.Specification<ProductJpaEntity> spec, Pageable pageable);
+
+    List<ProductJpaEntity> findByActiveTrueOrderByCategory_IdAscNameAsc();
+    List<ProductJpaEntity> findByActiveTrueAndCategory_IdOrderByNameAsc(Long categoryId);
+
 }

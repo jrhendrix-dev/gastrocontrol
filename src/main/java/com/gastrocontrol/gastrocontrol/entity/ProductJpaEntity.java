@@ -13,7 +13,10 @@ import java.time.Instant;
  * - Setters are provided because the service layer mutates the entity.
  */
 @Entity
-@Table(name = "products")
+@Table(
+        name = "products",
+        uniqueConstraints = @UniqueConstraint(name = "uq_products_name", columnNames = "name")
+)
 public class ProductJpaEntity {
 
     @Id

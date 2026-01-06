@@ -4,4 +4,11 @@ package com.gastrocontrol.gastrocontrol.repository;
 import com.gastrocontrol.gastrocontrol.entity.CategoryJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface CategoryRepository extends JpaRepository<CategoryJpaEntity, Long> {}
+import java.util.List;
+
+public interface CategoryRepository extends JpaRepository<CategoryJpaEntity, Long> {
+
+    List<CategoryJpaEntity> findAllByOrderByNameAsc();
+
+
+}

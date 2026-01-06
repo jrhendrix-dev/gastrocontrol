@@ -3,7 +3,10 @@ package com.gastrocontrol.gastrocontrol.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "categories")
+@Table(
+        name = "categories",
+        uniqueConstraints = @UniqueConstraint(name = "uq_categories_name", columnNames = "name")
+)
 public class CategoryJpaEntity {
 
     @Id
@@ -15,8 +18,7 @@ public class CategoryJpaEntity {
 
     protected CategoryJpaEntity() {}
 
-    public CategoryJpaEntity(Long id, String name) {
-        this.id = id;
+    public CategoryJpaEntity(String name) {
         this.name = name;
     }
 
