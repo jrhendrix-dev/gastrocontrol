@@ -41,14 +41,24 @@ public class SecurityConfig {
                         .authenticationEntryPoint(restAuthenticationEntryPoint) // 401
                         .accessDeniedHandler(restAccessDeniedHandler)           // 403
                 )
+// SecurityConfig.java (only the authorizeHttpRequests part)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/actuator/health", "/error").permitAll()
-                        .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "MANAGER")
-                        .requestMatchers("/api/manager/**").hasRole("MANAGER")
+
+                        // staff surface: STAFF + MANAGER + ADMIN
+                        .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "MANAGER", "ADMIN")
+
+                        // manager surface: MANAGER + ADMIN (admin should be able to do everything manager can)
+                        .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
+
+                        // admin surface: ADMIN only
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
                         .anyRequest().authenticated()
                 )
+
                 .authenticationProvider(daoAuthProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

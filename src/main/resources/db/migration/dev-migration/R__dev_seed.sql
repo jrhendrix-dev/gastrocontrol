@@ -1,58 +1,34 @@
 -- R__dev_seed.sql
 -- Dev-only seed data. Executed only when SPRING_PROFILES_ACTIVE=dev
--- Depends on V2__seed_reference_data.sql for categories/products/tables.
+-- Assumes R__dev_reset.sql has just truncated dev tables.
 
 -- =========================
 -- USERS (ADMIN / MANAGER / STAFF / CUSTOMER)
 -- password for all: GastroControl1726!
 -- =========================
-
 INSERT INTO users (email, password, role, active, created_at, first_name, last_name, phone)
 VALUES
     ('admin@gastro.local',
      '$2b$12$3jae2iKs5BcKJa/m5TkLx.4b6w2ELF1irYFYXbJutSbkCBW5uTTdy',
      'ADMIN', 1, NOW(), 'John', 'Doe', '564123567'),
-
     ('manager@gastro.local',
      '$2b$12$/oIg33gYYwzS02/.GRZF6.5NyYW.Xdqoef5M5laEjC11XdEOeEQ/G',
      'MANAGER', 1, NOW(), 'Juan', 'Lopez', '123456789'),
-
     ('staff@gastro.local',
      '$2b$12$F1St7LtgqmHMsREXI6oEo.jDu6tcM5HjgcU3fvMNojZ1.o/j5vkTq',
      'STAFF', 1, NOW(), 'Ernesto', 'Gomez', '987654321'),
-
     ('customer@gastro.local',
      '$2b$12$EIB.hrUar3nFL66VsngcbeAUrMQMvbdyHzj33QJXOYmm6kkVflh4O',
-     'CUSTOMER', 1, NOW(), 'Ana', 'Perez', '600111222')
-ON DUPLICATE KEY UPDATE
-                     -- keep these in sync in dev (optional)
-                     role = VALUES(role),
-                     active = VALUES(active),
-
-                     -- backfill only if missing
-                     first_name = CASE
-                                      WHEN users.first_name IS NULL OR users.first_name = '' THEN VALUES(first_name)
-                                      ELSE users.first_name
-                         END,
-                     last_name = CASE
-                                     WHEN users.last_name IS NULL OR users.last_name = '' THEN VALUES(last_name)
-                                     ELSE users.last_name
-                         END,
-                     phone = CASE
-                                 WHEN users.phone IS NULL OR users.phone = '' THEN VALUES(phone)
-                                 ELSE users.phone
-                         END;
+     'CUSTOMER', 1, NOW(), 'Ana', 'Perez', '600111222');
 
 -- =========================
--- BACKFILL: any other users created via API
--- fill missing first_name/last_name/phone with "random-ish" deterministic values
+-- BACKFILL (optional) - keep your existing block if you want
 -- =========================
 
 UPDATE users u
     JOIN (
         SELECT
             id,
-            -- pick from a small list using MOD on id (stable across runs)
             ELT(MOD(id, 8) + 1, 'Alex', 'Sam', 'Taylor', 'Chris', 'Jordan', 'Casey', 'Morgan', 'Jamie') AS fn,
             ELT(MOD(id, 8) + 1, 'Smith', 'Johnson', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Anderson') AS ln,
             CONCAT('6', LPAD(MOD(id * 7919, 100000000), 8, '0')) AS ph
@@ -68,51 +44,83 @@ WHERE
    OR (u.phone      IS NULL OR u.phone      = '');
 
 -- =========================
+-- CATEGORIES
+-- =========================
+INSERT INTO categories (name)
+VALUES
+    ('Burgers'),
+    ('Starters'),
+    ('Salads'),
+    ('Pizzas'),
+    ('Desserts'),
+    ('Drinks');
+
+-- =========================
+-- PRODUCTS (15) - ids will become 1..15 (fresh DB / after TRUNCATE)
+-- =========================
+INSERT INTO products (name, description, price_cents, active, category_id)
+VALUES
+    ('Hamburger', 'Classic beef burger with lettuce, tomato and house sauce.', 1090, 1,
+     (SELECT id FROM categories WHERE name='Burgers' LIMIT 1)),
+    ('Cheeseburger', 'Beef burger with cheddar cheese.', 1190, 1,
+     (SELECT id FROM categories WHERE name='Burgers' LIMIT 1)),
+    ('Double Burger', 'Double beef patty burger.', 1490, 1,
+     (SELECT id FROM categories WHERE name='Burgers' LIMIT 1)),
+    ('Chicken Burger', 'Crispy chicken burger with mayo.', 1290, 1,
+     (SELECT id FROM categories WHERE name='Burgers' LIMIT 1)),
+
+    ('French Fries', 'Crispy fries with salt.', 350, 1,
+     (SELECT id FROM categories WHERE name='Starters' LIMIT 1)),
+    ('Onion Rings', 'Golden onion rings with dip.', 450, 1,
+     (SELECT id FROM categories WHERE name='Starters' LIMIT 1)),
+    ('Chicken Nuggets', '6pc nuggets with sauce.', 590, 1,
+     (SELECT id FROM categories WHERE name='Starters' LIMIT 1)),
+
+    ('Caesar Salad', 'Romaine, parmesan, croutons, Caesar dressing.', 890, 1,
+     (SELECT id FROM categories WHERE name='Salads' LIMIT 1)),
+    ('Greek Salad', 'Tomato, cucumber, feta, olives.', 850, 1,
+     (SELECT id FROM categories WHERE name='Salads' LIMIT 1)),
+
+    ('Margherita Pizza', 'Tomato, mozzarella, basil.', 1090, 1,
+     (SELECT id FROM categories WHERE name='Pizzas' LIMIT 1)),
+    ('Pepperoni Pizza', 'Pepperoni and mozzarella.', 1290, 1,
+     (SELECT id FROM categories WHERE name='Pizzas' LIMIT 1)),
+
+    ('Chocolate Brownie', 'Warm brownie.', 490, 1,
+     (SELECT id FROM categories WHERE name='Desserts' LIMIT 1)),
+    ('Cheesecake', 'Creamy cheesecake slice.', 520, 1,
+     (SELECT id FROM categories WHERE name='Desserts' LIMIT 1)),
+
+    ('Coke', '330ml can.', 250, 1,
+     (SELECT id FROM categories WHERE name='Drinks' LIMIT 1)),
+    ('Water', '500ml bottle.', 180, 1,
+     (SELECT id FROM categories WHERE name='Drinks' LIMIT 1));
+
+-- =========================
 -- SAMPLE ORDER (PENDING) FOR TABLE 1 + ITEMS
--- Uses products from V2: 201 Hamburger, 402 Coke
 -- =========================
 
--- Create a pending order for table 1 if none exists
-INSERT INTO orders (type, status, dining_table_id, total_cents, created_at, updated_at, closed_at, version)
-SELECT
-    'DINE_IN',
-    'PENDING',
-    1,
-    0,
-    NOW(),
-    NOW(),
-    NULL,
-    0
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM orders o
-    WHERE o.dining_table_id = 1 AND o.status = 'PENDING'
-);
+INSERT INTO orders (type, status, dining_table_id, created_at)
+VALUES ('DINE_IN', 'PENDING', 1, NOW());
 
--- Add items to the latest pending order for table 1
--- 2x Hamburger (201) + 1x Coke (402)
+-- 2x Hamburger
 INSERT INTO order_items (order_id, product_id, quantity, unit_price_cents)
-SELECT o.id, 201, 2, 1090
-FROM orders o
-WHERE o.dining_table_id = 1 AND o.status = 'PENDING'
-ORDER BY o.id DESC
-LIMIT 1
-ON DUPLICATE KEY UPDATE
-                     quantity = VALUES(quantity),
-                     unit_price_cents = VALUES(unit_price_cents);
+VALUES (
+           (SELECT id FROM orders WHERE dining_table_id=1 AND status='PENDING' ORDER BY id DESC LIMIT 1),
+           (SELECT id FROM products WHERE name='Hamburger' ORDER BY id ASC LIMIT 1),
+           2,
+           (SELECT price_cents FROM products WHERE name='Hamburger' ORDER BY id ASC LIMIT 1)
+       );
 
+-- 1x Coke
 INSERT INTO order_items (order_id, product_id, quantity, unit_price_cents)
-SELECT o.id, 402, 1, 250
-FROM orders o
-WHERE o.dining_table_id = 1 AND o.status = 'PENDING'
-ORDER BY o.id DESC
-LIMIT 1
-ON DUPLICATE KEY UPDATE
-                     quantity = VALUES(quantity),
-                     unit_price_cents = VALUES(unit_price_cents);
+VALUES (
+           (SELECT id FROM orders WHERE dining_table_id=1 AND status='PENDING' ORDER BY id DESC LIMIT 1),
+           (SELECT id FROM products WHERE name='Coke' ORDER BY id ASC LIMIT 1),
+           1,
+           (SELECT price_cents FROM products WHERE name='Coke' ORDER BY id ASC LIMIT 1)
+       );
 
-
--- Recompute total_cents for that order
 UPDATE orders o
     JOIN (
         SELECT oi.order_id, SUM(oi.quantity * oi.unit_price_cents) AS total
