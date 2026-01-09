@@ -72,6 +72,8 @@ public class AuthService {
         String hashed = passwordEncoder.encode(req.password());
         UserJpaEntity saved = userRepository.save(new UserJpaEntity(email, hashed, role, true));
 
+
+
         return new RegisterResponse(saved.getId(), saved.getEmail());
     }
 

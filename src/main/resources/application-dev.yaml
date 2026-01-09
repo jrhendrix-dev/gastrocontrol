@@ -10,12 +10,11 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate       # dev only; later we'll move to migrations
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-
     open-in-view: false
 
   jackson:
@@ -28,25 +27,15 @@ spring:
       - classpath:db/migration
       - classpath:db/dev-migration
     baseline-on-migrate: true
-    clean-disabled: true   # safety: prevents accidental 'flyway clean'
+    clean-disabled: true
 
+mail:
+  enabled: ${MAIL_ENABLED:true}
+  from:
+    email: ${MAIL_FROM_EMAIL:no-reply@jonathan-hendrix.dev}
+    name: ${MAIL_FROM_NAME:GastroControl}
+  mailgun:
+    api-key: ${MAILGUN_API_KEY}
+    domain: ${MAILGUN_DOMAIN:jonathan-hendrix.dev}
+    base-url: ${MAILGUN_BASE_URL:https://api.eu.mailgun.net}
 
-security:
-  jwt:
-    secret: ${JWT_SECRET}
-    expiration-seconds: 900 # access token, e.g. 15 minutes
-  refresh:
-    expiration-days: 14
-    cookie:
-      name: refresh_token
-      same-site: Lax      # dev-friendly; prod often None
-      secure: false       # prod true
-
-
-server:
-  port: 8080
-
-logging:
-  level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

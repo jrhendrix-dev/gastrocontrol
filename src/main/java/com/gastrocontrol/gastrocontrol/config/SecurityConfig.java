@@ -46,6 +46,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/actuator/health", "/error").permitAll()
+                        .requestMatchers("/api/dev/**").permitAll()
+
 
                         // staff surface: STAFF + MANAGER + ADMIN
                         .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "MANAGER", "ADMIN")
