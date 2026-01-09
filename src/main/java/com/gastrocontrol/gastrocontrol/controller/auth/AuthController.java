@@ -3,7 +3,7 @@ package com.gastrocontrol.gastrocontrol.controller.auth;
 import com.gastrocontrol.gastrocontrol.dto.auth.*;
 import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
 import com.gastrocontrol.gastrocontrol.security.UserPrincipal;
-import com.gastrocontrol.gastrocontrol.service.auth.AuthService;
+import com.gastrocontrol.gastrocontrol.application.service.auth.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -42,6 +42,7 @@ public class AuthController {
                 ApiResponse.ok("User " + created.getEmail() + " successfully registered", created)
         );
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(

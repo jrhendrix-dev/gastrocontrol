@@ -1,6 +1,6 @@
 package com.gastrocontrol.gastrocontrol.dto.staff;
 
-import com.gastrocontrol.gastrocontrol.entity.enums.OrderEventReasonCode;
+import com.gastrocontrol.gastrocontrol.domain.enums.OrderEventReasonCode;
 import jakarta.validation.constraints.NotNull;
 
 public class ReopenOrderRequest {

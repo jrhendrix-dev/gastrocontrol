@@ -5,7 +5,7 @@ import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
 import com.gastrocontrol.gastrocontrol.dto.manager.CreateProductRequest;
 import com.gastrocontrol.gastrocontrol.dto.manager.DiscontinueProductRequest;
 import com.gastrocontrol.gastrocontrol.dto.manager.UpdateProductRequest;
-import com.gastrocontrol.gastrocontrol.service.manager.ManagerProductService;
+import com.gastrocontrol.gastrocontrol.application.service.manager.ManagerProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

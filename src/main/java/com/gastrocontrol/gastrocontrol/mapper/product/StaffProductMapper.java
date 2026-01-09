@@ -2,7 +2,7 @@
 package com.gastrocontrol.gastrocontrol.mapper.product;
 
 import com.gastrocontrol.gastrocontrol.dto.staff.ProductResponse;
-import com.gastrocontrol.gastrocontrol.entity.ProductJpaEntity;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.ProductJpaEntity;
 
 public final class StaffProductMapper {
 

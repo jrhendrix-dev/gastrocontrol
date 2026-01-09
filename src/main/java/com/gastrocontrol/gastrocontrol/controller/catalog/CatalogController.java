@@ -2,7 +2,7 @@ package com.gastrocontrol.gastrocontrol.controller.catalog;
 
 import com.gastrocontrol.gastrocontrol.dto.catalog.CatalogCategoryDto;
 import com.gastrocontrol.gastrocontrol.dto.catalog.CatalogProductDto;
-import com.gastrocontrol.gastrocontrol.service.catalog.CatalogService;
+import com.gastrocontrol.gastrocontrol.application.service.catalog.CatalogService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

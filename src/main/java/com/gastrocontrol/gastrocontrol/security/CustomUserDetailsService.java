@@ -1,7 +1,7 @@
 package com.gastrocontrol.gastrocontrol.security;
 
-import com.gastrocontrol.gastrocontrol.entity.UserJpaEntity;
-import com.gastrocontrol.gastrocontrol.repository.UserRepository;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.UserJpaEntity;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

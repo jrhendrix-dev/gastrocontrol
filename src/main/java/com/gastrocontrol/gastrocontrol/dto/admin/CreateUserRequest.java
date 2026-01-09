@@ -1,6 +1,6 @@
 package com.gastrocontrol.gastrocontrol.dto.admin;
 
-import com.gastrocontrol.gastrocontrol.entity.enums.UserRole;
+import com.gastrocontrol.gastrocontrol.domain.enums.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 

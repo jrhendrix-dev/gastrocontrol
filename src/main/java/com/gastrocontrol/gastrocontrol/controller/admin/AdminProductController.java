@@ -2,7 +2,7 @@
 package com.gastrocontrol.gastrocontrol.controller.admin;
 
 import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
-import com.gastrocontrol.gastrocontrol.service.admin.AdminProductService;
+import com.gastrocontrol.gastrocontrol.application.service.admin.AdminProductService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;

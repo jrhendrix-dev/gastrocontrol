@@ -1,6 +1,6 @@
 package com.gastrocontrol.gastrocontrol.dto.order;
 
-import com.gastrocontrol.gastrocontrol.entity.enums.OrderStatus;
+import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
 
 import java.time.Instant;
 import java.util.List;

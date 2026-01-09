@@ -3,8 +3,8 @@ package com.gastrocontrol.gastrocontrol.controller.staff;
 
 import com.gastrocontrol.gastrocontrol.dto.common.PagedResponse;
 import com.gastrocontrol.gastrocontrol.dto.staff.DiningTableResponse;
-import com.gastrocontrol.gastrocontrol.service.table.GetDiningTableUseCase;
-import com.gastrocontrol.gastrocontrol.service.table.ListDiningTablesUseCase;
+import com.gastrocontrol.gastrocontrol.application.service.table.GetDiningTableService;
+import com.gastrocontrol.gastrocontrol.application.service.table.ListDiningTablesService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -15,18 +15,18 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/staff/tables")
 public class StaffDiningTableController {
 
-    private final GetDiningTableUseCase getDiningTableUseCase;
-    private final ListDiningTablesUseCase listDiningTablesUseCase;
+    private final GetDiningTableService getDiningTableService;
+    private final ListDiningTablesService listDiningTablesService;
 
-    public StaffDiningTableController(GetDiningTableUseCase getDiningTableUseCase,
-                                      ListDiningTablesUseCase listDiningTablesUseCase) {
-        this.getDiningTableUseCase = getDiningTableUseCase;
-        this.listDiningTablesUseCase = listDiningTablesUseCase;
+    public StaffDiningTableController(GetDiningTableService getDiningTableService,
+                                      ListDiningTablesService listDiningTablesService) {
+        this.getDiningTableService = getDiningTableService;
+        this.listDiningTablesService = listDiningTablesService;
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<DiningTableResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(getDiningTableUseCase.handle(id));
+        return ResponseEntity.ok(getDiningTableService.handle(id));
     }
 
     @GetMapping
@@ -37,7 +37,7 @@ public class StaffDiningTableController {
             @RequestParam(defaultValue = "id,asc") String sort
     ) {
         Pageable pageable = toPageable(page, size, sort);
-        return ResponseEntity.ok(listDiningTablesUseCase.handle(q, pageable));
+        return ResponseEntity.ok(listDiningTablesService.handle(q, pageable));
     }
 
     private static Pageable toPageable(int page, int size, String sort) {

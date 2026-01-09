@@ -3,7 +3,7 @@ package com.gastrocontrol.gastrocontrol.controller.admin;
 
 import com.gastrocontrol.gastrocontrol.dto.admin.CreateUserRequest;
 import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
-import com.gastrocontrol.gastrocontrol.service.admin.AdminUserService;
+import com.gastrocontrol.gastrocontrol.application.service.admin.AdminUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

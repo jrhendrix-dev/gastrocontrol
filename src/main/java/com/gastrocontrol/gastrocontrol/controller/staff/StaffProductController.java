@@ -3,9 +3,9 @@ package com.gastrocontrol.gastrocontrol.controller.staff;
 
 import com.gastrocontrol.gastrocontrol.dto.common.PagedResponse;
 import com.gastrocontrol.gastrocontrol.dto.staff.ProductResponse;
-import com.gastrocontrol.gastrocontrol.service.product.GetProductUseCase;
-import com.gastrocontrol.gastrocontrol.service.product.ListProductsQuery;
-import com.gastrocontrol.gastrocontrol.service.product.ListProductsUseCase;
+import com.gastrocontrol.gastrocontrol.application.service.product.GetProductService;
+import com.gastrocontrol.gastrocontrol.application.service.product.ListProductsQuery;
+import com.gastrocontrol.gastrocontrol.application.service.product.ListProductsService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -16,17 +16,17 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/staff/products")
 public class StaffProductController {
 
-    private final GetProductUseCase getProductUseCase;
-    private final ListProductsUseCase listProductsUseCase;
+    private final GetProductService getProductService;
+    private final ListProductsService listProductsService;
 
-    public StaffProductController(GetProductUseCase getProductUseCase, ListProductsUseCase listProductsUseCase) {
-        this.getProductUseCase = getProductUseCase;
-        this.listProductsUseCase = listProductsUseCase;
+    public StaffProductController(GetProductService getProductService, ListProductsService listProductsService) {
+        this.getProductService = getProductService;
+        this.listProductsService = listProductsService;
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(getProductUseCase.handle(id));
+        return ResponseEntity.ok(getProductService.handle(id));
     }
 
     @GetMapping
@@ -40,7 +40,7 @@ public class StaffProductController {
     ) {
         Pageable pageable = toPageable(page, size, sort);
         var query = new ListProductsQuery(active, categoryId, q);
-        return ResponseEntity.ok(listProductsUseCase.handle(query, pageable));
+        return ResponseEntity.ok(listProductsService.handle(query, pageable));
     }
 
     private static Pageable toPageable(int page, int size, String sort) {

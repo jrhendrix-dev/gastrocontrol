@@ -3,7 +3,7 @@ package com.gastrocontrol.gastrocontrol.mapper.order;
 
 import com.gastrocontrol.gastrocontrol.dto.order.OrderDto;
 import com.gastrocontrol.gastrocontrol.dto.order.OrderItemDto;
-import com.gastrocontrol.gastrocontrol.entity.OrderJpaEntity;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderJpaEntity;
 
 import java.util.stream.Collectors;
 

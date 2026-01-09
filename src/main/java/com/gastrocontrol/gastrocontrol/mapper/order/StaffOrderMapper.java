@@ -4,7 +4,7 @@ package com.gastrocontrol.gastrocontrol.mapper.order;
 import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.staff.OrderResponse;
-import com.gastrocontrol.gastrocontrol.entity.OrderJpaEntity;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderJpaEntity;
 
 import java.util.stream.Collectors;
 

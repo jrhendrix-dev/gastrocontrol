@@ -1,7 +1,7 @@
 // src/main/java/com/gastrocontrol/gastrocontrol/dto/staff/ChangeOrderStatusRequest.java
 package com.gastrocontrol.gastrocontrol.dto.staff;
 
-import com.gastrocontrol.gastrocontrol.entity.enums.OrderStatus;
+import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
 import jakarta.validation.constraints.NotNull;
 
 public class ChangeOrderStatusRequest {

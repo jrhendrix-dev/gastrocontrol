@@ -1,7 +1,7 @@
 // src/main/java/com/gastrocontrol/gastrocontrol/dto/staff/CreateOrderRequest.java
 package com.gastrocontrol.gastrocontrol.dto.staff;
 
-import com.gastrocontrol.gastrocontrol.entity.enums.OrderType;
+import com.gastrocontrol.gastrocontrol.domain.enums.OrderType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;

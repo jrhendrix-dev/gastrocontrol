@@ -1,6 +1,6 @@
 package com.gastrocontrol.gastrocontrol.dto.auth;
 
-import com.gastrocontrol.gastrocontrol.entity.enums.UserRole;
+import com.gastrocontrol.gastrocontrol.domain.enums.UserRole;
 
 import java.time.Instant;
 

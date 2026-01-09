@@ -1,6 +1,7 @@
 // src/main/java/com/gastrocontrol/gastrocontrol/controller/staff/StaffOrderController.java
 package com.gastrocontrol.gastrocontrol.controller.staff;
 
+import com.gastrocontrol.gastrocontrol.application.service.order.*;
 import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
 import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.order.OrderDto;
@@ -8,14 +9,10 @@ import com.gastrocontrol.gastrocontrol.dto.staff.ChangeOrderStatusRequest;
 import com.gastrocontrol.gastrocontrol.dto.staff.CreateOrderRequest;
 import com.gastrocontrol.gastrocontrol.dto.staff.OrderResponse;
 import com.gastrocontrol.gastrocontrol.dto.staff.ReopenOrderRequest;
-import com.gastrocontrol.gastrocontrol.service.order.*;
 import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.common.PagedResponse;
-import com.gastrocontrol.gastrocontrol.entity.enums.OrderStatus;
-import com.gastrocontrol.gastrocontrol.entity.enums.OrderType;
-import com.gastrocontrol.gastrocontrol.service.order.GetOrderUseCase;
-import com.gastrocontrol.gastrocontrol.service.order.ListOrdersQuery;
-import com.gastrocontrol.gastrocontrol.service.order.ListOrdersUseCase;
+import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
+import com.gastrocontrol.gastrocontrol.domain.enums.OrderType;
 
 
 import jakarta.validation.Valid;
@@ -36,23 +33,23 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/staff/orders")
 public class StaffOrderController {
 
-    private final CreateOrderUseCase createOrderUseCase;
-    private final ChangeOrderStatusUseCase changeOrderStatusUseCase;
-    private final ReopenOrderUseCase reopenOrderUseCase;
-    private final GetOrderUseCase getOrderUseCase;
-    private final ListOrdersUseCase listOrdersUseCase;
+    private final CreateOrderService createOrderService;
+    private final ChangeOrderStatusService changeOrderStatusService;
+    private final ReopenOrderService reopenOrderService;
+    private final GetOrderService getOrderService;
+    private final ListOrdersService listOrdersService;
 
 
     public StaffOrderController(
-            CreateOrderUseCase createOrderUseCase,
-            ChangeOrderStatusUseCase changeOrderStatusUseCase,
-            ReopenOrderUseCase reopenOrderUseCase, GetOrderUseCase getOrderUseCase, ListOrdersUseCase listOrdersUseCase
+            CreateOrderService createOrderService,
+            ChangeOrderStatusService changeOrderStatusService,
+            ReopenOrderService reopenOrderService, GetOrderService getOrderService, ListOrdersService listOrdersService
     ) {
-        this.createOrderUseCase = createOrderUseCase;
-        this.changeOrderStatusUseCase = changeOrderStatusUseCase;
-        this.reopenOrderUseCase = reopenOrderUseCase;
-        this.getOrderUseCase = getOrderUseCase;
-        this.listOrdersUseCase = listOrdersUseCase;
+        this.createOrderService = createOrderService;
+        this.changeOrderStatusService = changeOrderStatusService;
+        this.reopenOrderService = reopenOrderService;
+        this.getOrderService = getOrderService;
+        this.listOrdersService = listOrdersService;
     }
 
     @PostMapping
@@ -92,7 +89,7 @@ public class StaffOrderController {
                         .collect(Collectors.toList())
         );
 
-        CreateOrderResult result = createOrderUseCase.handle(command);
+        CreateOrderResult result = createOrderService.handle(command);
 
         OrderResponse response = new OrderResponse();
         response.setId(result.getOrderId());
@@ -120,7 +117,7 @@ public class StaffOrderController {
             @PathVariable Long orderId,
             @Valid @RequestBody ChangeOrderStatusRequest req
     ) {
-        ChangeOrderStatusResult result = changeOrderStatusUseCase.handle(
+        ChangeOrderStatusResult result = changeOrderStatusService.handle(
                 new ChangeOrderStatusCommand(orderId, req.getNewStatus(), req.getMessage())
         );
 
@@ -135,7 +132,7 @@ public class StaffOrderController {
             @PathVariable Long orderId,
             @Valid @RequestBody ReopenOrderRequest req
     ) {
-        OrderDto order = reopenOrderUseCase.handle(
+        OrderDto order = reopenOrderService.handle(
                 new ReopenOrderCommand(orderId, req.getReasonCode(), req.getMessage())
         );
 
@@ -154,7 +151,7 @@ public class StaffOrderController {
 
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponse> getById(@PathVariable Long orderId) {
-        return ResponseEntity.ok(getOrderUseCase.handle(orderId));
+        return ResponseEntity.ok(getOrderService.handle(orderId));
     }
 
     @GetMapping
@@ -172,7 +169,7 @@ public class StaffOrderController {
         List<OrderStatus> statuses = parseStatuses(status);
         ListOrdersQuery q = new ListOrdersQuery(statuses, type, createdFrom, createdTo);
 
-        return ResponseEntity.ok(listOrdersUseCase.handle(q, pageable));
+        return ResponseEntity.ok(listOrdersService.handle(q, pageable));
     }
 
     @GetMapping("/active")
@@ -195,7 +192,7 @@ public class StaffOrderController {
 
         ListOrdersQuery q = new ListOrdersQuery(activeStatuses, type, createdFrom, createdTo);
 
-        return ResponseEntity.ok(listOrdersUseCase.handle(q, pageable));
+        return ResponseEntity.ok(listOrdersService.handle(q, pageable));
     }
 
     private static Pageable toPageable(int page, int size, String sort) {

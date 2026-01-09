@@ -1,6 +1,6 @@
 package com.gastrocontrol.gastrocontrol.security;
 
-import com.gastrocontrol.gastrocontrol.entity.UserJpaEntity;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.UserJpaEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

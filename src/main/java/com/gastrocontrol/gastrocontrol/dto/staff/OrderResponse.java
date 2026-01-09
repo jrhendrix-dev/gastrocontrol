@@ -3,8 +3,8 @@ package com.gastrocontrol.gastrocontrol.dto.staff;
 
 import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
-import com.gastrocontrol.gastrocontrol.entity.enums.OrderStatus;
-import com.gastrocontrol.gastrocontrol.entity.enums.OrderType;
+import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
+import com.gastrocontrol.gastrocontrol.domain.enums.OrderType;
 
 import java.util.List;
 
