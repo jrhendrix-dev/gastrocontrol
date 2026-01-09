@@ -41,12 +41,11 @@ services:
       DB_NAME: gastrocontrol
       DB_USER: gastrocontrol
       DB_PASSWORD: gastrocontrol
-      MAIL_FROM_EMAIL: "no-reply@jonathan-hendrix.dev"
-      MAIL_FROM_NAME: "GastroControl"
-      MAILGUN_DOMAIN: "jonathan-hendrix.dev"
-      MAILGUN_API_KEY: "REDACTED_MAILGUN_KEY"
-      # optional:
-      MAILGUN_BASE_URL: "https://api.eu.mailgun.net"
+      MAILGUN_API_KEY: ${MAILGUN_API_KEY}
+      MAILGUN_DOMAIN: ${MAILGUN_DOMAIN}
+      MAILGUN_BASE_URL: ${MAILGUN_BASE_URL:-https://api.eu.mailgun.net}
+      MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL:-no-reply@jonathan-hendrix.dev}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-GastroControl}
 
 
     networks:
