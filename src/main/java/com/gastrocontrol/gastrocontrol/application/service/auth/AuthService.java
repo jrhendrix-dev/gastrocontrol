@@ -38,6 +38,11 @@ public class AuthService {
             EnumSet.of(UserRole.CUSTOMER);
 
 
+    @Value("${app.frontend.base-url:http://localhost:4200}")
+    private String frontendBaseUrl;
+
+
+    private final AccountTokenService accountTokenService;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
@@ -211,6 +216,72 @@ public class AuthService {
                 user.getLastLoginAt()
         );
     }
+
+    // ---------------- Password ---------------
+
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest req, String ip, String userAgent) {
+        if (req == null) throw new ValidationException(Map.of("request", "Request body is required"));
+
+        String email = req.email() == null ? "" : req.email().trim().toLowerCase();
+        if (email.isBlank()) throw new ValidationException(Map.of("email", "Email is required"));
+
+        // Important: do NOT leak whether user exists
+        userRepository.findByEmail(email).ifPresent(user -> {
+            if (!user.isActive()) return; // optionally still "pretend ok"
+
+            var issued = accountTokenService.issue(
+                    user,
+                    com.gastrocontrol.gastrocontrol.domain.enums.AccountTokenType.PASSWORD_RESET,
+                    java.time.Duration.ofMinutes(30),
+                    ip,
+                    userAgent
+            );
+
+            String url = frontendBaseUrl + "/reset-password?token=" + issued.rawToken();
+            transactionalEmailService.sendPasswordReset(user, url);
+        });
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest req) {
+        if (req == null) throw new ValidationException(Map.of("request", "Request body is required"));
+
+        var token = accountTokenService.validateOrThrow(
+                req.token(),
+                com.gastrocontrol.gastrocontrol.domain.enums.AccountTokenType.PASSWORD_RESET
+        );
+
+        UserJpaEntity user = token.getUser();
+        if (!user.isActive()) {
+            throw new BusinessRuleViolationException(Map.of("account", "User is disabled"));
+        }
+
+        user.setPassword(passwordEncoder.encode(req.newPassword()));
+        token.markUsed();
+
+        // JPA will flush updates in transaction
+    }
+
+    @Transactional
+    public void acceptInvite(SetPasswordRequest req) {
+        if (req == null) throw new ValidationException(Map.of("request", "Request body is required"));
+
+        var token = accountTokenService.validateOrThrow(
+                req.token(),
+                com.gastrocontrol.gastrocontrol.domain.enums.AccountTokenType.INVITE_SET_PASSWORD
+        );
+
+        UserJpaEntity user = token.getUser();
+        if (!user.isActive()) {
+            throw new BusinessRuleViolationException(Map.of("account", "User is disabled"));
+        }
+
+        user.setPassword(passwordEncoder.encode(req.newPassword()));
+        token.markUsed();
+    }
+
+
 
 
     // ---------------- Helpers ----------------

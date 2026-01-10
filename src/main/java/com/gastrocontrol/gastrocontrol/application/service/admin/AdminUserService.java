@@ -5,12 +5,17 @@ import com.gastrocontrol.gastrocontrol.dto.admin.CreateUserRequest;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.UserJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.UserRepository;
 import com.gastrocontrol.gastrocontrol.application.service.mailer.TransactionalEmailService;
+import com.gastrocontrol.gastrocontrol.application.service.auth.AccountTokenService;
+import com.gastrocontrol.gastrocontrol.domain.enums.AccountTokenType;
+
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,6 +23,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AdminUserService {
 
+    @Value("${app.frontend.base-url:http://localhost:4200}")
+    private String frontendBaseUrl;
+
+    private final AccountTokenService accountTokenService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TransactionalEmailService transactionalEmailService;
@@ -28,7 +37,7 @@ public class AdminUserService {
             throw new ValidationException(Map.of("email", "Email already exists"));
         }
 
-        // Optional: random password + reset flow later
+        // Temporary password stored hashed; user will set real password via invite link.
         String tempPassword = UUID.randomUUID().toString();
         String hashed = passwordEncoder.encode(tempPassword);
 
@@ -41,11 +50,19 @@ public class AdminUserService {
 
         userRepository.save(user);
 
-        transactionalEmailService.sendAdminCreatedAccount(user, req.role());
+        var issued = accountTokenService.issue(
+                user,
+                AccountTokenType.INVITE_SET_PASSWORD,
+                Duration.ofHours(24),
+                null,
+                null
+        );
 
-        // Later:
-        // - send invite email
-        // - force password reset
+        String url = frontendBaseUrl + "/set-password?token=" + issued.rawToken();
+
+        // ✅ This is the whole point of invite flow
+        transactionalEmailService.sendInviteSetPassword(user, url);
     }
+
 }
 

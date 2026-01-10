@@ -87,6 +87,28 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("Me", body));
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest req,
+            HttpServletRequest request
+    ) {
+        authService.forgotPassword(req, clientIp(request), request.getHeader("User-Agent"));
+        return ResponseEntity.ok(ApiResponse.ok("If the email exists, a reset link was sent"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
+        authService.resetPassword(req);
+        return ResponseEntity.ok(ApiResponse.ok("Password updated"));
+    }
+
+    @PostMapping("/accept-invite")
+    public ResponseEntity<ApiResponse<Void>> acceptInvite(@Valid @RequestBody SetPasswordRequest req) {
+        authService.acceptInvite(req);
+        return ResponseEntity.ok(ApiResponse.ok("Password set"));
+    }
+
+
     private void setRefreshCookie(HttpServletResponse response, String refreshTokenRaw) {
         ResponseCookie cookie = ResponseCookie.from(refreshCookieName, refreshTokenRaw)
                 .httpOnly(true)

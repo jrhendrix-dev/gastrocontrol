@@ -65,6 +65,40 @@ public class TransactionalEmailService {
         safeSend(user.getEmail(), displayName(user), subject, htmlBody);
     }
 
+    public void sendInviteSetPassword(UserJpaEntity user, String setPasswordUrl) {
+        if (user == null || isBlank(user.getEmail())) return;
+
+        String subject = "Set your GastroControl password";
+        String htmlBody = """
+            <h2>You're invited to GastroControl</h2>
+            <p>An administrator created an account for you.</p>
+            <p>Set your password here:</p>
+            <p><a href="%s">Set password</a></p>
+            <p>If you didn’t expect this email, you can ignore it.</p>
+            """.formatted(escapeHtml(setPasswordUrl));
+
+        safeSend(user.getEmail(), displayName(user), subject, htmlBody);
+    }
+
+    public void sendPasswordReset(UserJpaEntity user, String resetUrl) {
+        if (user == null || isBlank(user.getEmail())) return;
+
+        String subject = "Reset your GastroControl password";
+        String htmlBody = """
+            <h2>Password reset requested</h2>
+            <p>Reset your password here:</p>
+            <p><a href="%s">Reset password</a></p>
+            <p>If you didn't request this, you can ignore this email.</p>
+            """.formatted(escapeHtml(resetUrl));
+
+        safeSend(user.getEmail(), displayName(user), subject, htmlBody);
+    }
+
+
+
+
+
+
     private void safeSend(String toEmail, String toName, String subject, String htmlBody) {
         try {
             emailSender.send(toEmail, toName, subject, htmlBody);

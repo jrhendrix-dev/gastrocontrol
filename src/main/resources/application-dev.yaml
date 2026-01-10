@@ -39,3 +39,8 @@ mail:
     domain: ${MAILGUN_DOMAIN:jonathan-hendrix.dev}
     base-url: ${MAILGUN_BASE_URL:https://api.eu.mailgun.net}
 
+app:
+  public:
+    base-url: ${APP_PUBLIC_BASE_URL:http://localhost:8080}
+  frontend:
+    base-url: ${APP_FRONTEND_BASE_URL:http://localhost:4200}
