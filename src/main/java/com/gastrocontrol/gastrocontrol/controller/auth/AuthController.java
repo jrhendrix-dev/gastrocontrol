@@ -81,12 +81,6 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("Logged out"));
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<ApiResponse<MeResponse>> me(@AuthenticationPrincipal UserPrincipal principal) {
-        MeResponse body = authService.me(principal);
-        return ResponseEntity.ok(ApiResponse.ok("Me", body));
-    }
-
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<Void>> forgotPassword(
             @Valid @RequestBody ForgotPasswordRequest req,

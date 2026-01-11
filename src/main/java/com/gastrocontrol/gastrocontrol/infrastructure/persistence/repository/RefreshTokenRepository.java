@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface RefreshTokenRepository extends JpaRepository<RefreshTokenJpaEntity, Long> {
     Optional<RefreshTokenJpaEntity> findByTokenHash(String tokenHash);
     long deleteByUser_Id(Long userId);
+    long deleteByUser(com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.UserJpaEntity user);
+
 }

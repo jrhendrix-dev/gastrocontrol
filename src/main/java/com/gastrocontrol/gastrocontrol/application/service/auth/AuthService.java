@@ -194,29 +194,6 @@ public class AuthService {
         });
     }
 
-    // ---------------- Me --------------------
-    @Transactional
-    public MeResponse me(UserPrincipal principal) {
-        if (principal == null) {
-            throw new ValidationException(Map.of("auth", "Not authenticated"));
-        }
-
-        UserJpaEntity user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
-        return new MeResponse(
-                user.getId(),
-                user.getEmail(),
-                user.getRole(),
-                user.isActive(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getPhone(),
-                user.getCreatedAt(),
-                user.getLastLoginAt()
-        );
-    }
-
     // ---------------- Password ---------------
 
     @Transactional

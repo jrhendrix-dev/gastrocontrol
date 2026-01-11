@@ -1,7 +1,6 @@
 package com.gastrocontrol.gastrocontrol.application.service.mailer;
 
 import com.gastrocontrol.gastrocontrol.application.port.EmailSender;
-import com.gastrocontrol.gastrocontrol.domain.enums.UserRole;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.UserJpaEntity;
 
 import lombok.RequiredArgsConstructor;
@@ -39,32 +38,6 @@ public class TransactionalEmailService {
         safeSend(user.getEmail(), displayName(user), subject, htmlBody);
     }
 
-    /**
-     * Sends an email when an admin creates an account for a user.
-     *
-     * <p>Since we don't have an invite/set-password token yet, we instruct them to use "Forgot password".</p>
-     *
-     * @param user persisted user created by admin
-     * @param role role assigned to the user
-     */
-    public void sendAdminCreatedAccount(UserJpaEntity user, UserRole role) {
-        if (user == null || isBlank(user.getEmail())) return;
-
-        String subject = "Your GastroControl account was created";
-        String htmlBody = """
-                <h2>Your account is ready</h2>
-                <p>An administrator created an account for you in GastroControl.</p>
-                <ul>
-                  <li><b>Email:</b> %s</li>
-                  <li><b>Role:</b> %s</li>
-                </ul>
-                <p>To access your account, set your password using the <b>Forgot password</b> option on the login screen.</p>
-                <p>If you believe this is a mistake, please contact support.</p>
-                """.formatted(escapeHtml(user.getEmail()), escapeHtml(String.valueOf(role)));
-
-        safeSend(user.getEmail(), displayName(user), subject, htmlBody);
-    }
-
     public void sendInviteSetPassword(UserJpaEntity user, String setPasswordUrl) {
         if (user == null || isBlank(user.getEmail())) return;
 
@@ -94,6 +67,33 @@ public class TransactionalEmailService {
         safeSend(user.getEmail(), displayName(user), subject, htmlBody);
     }
 
+    public void sendEmailChangeConfirmation(String toNewEmail, String displayName, String confirmUrl) {
+        if (isBlank(toNewEmail)) return;
+
+        String subject = "Confirm your GastroControl email change";
+        String htmlBody = """
+        <h2>Confirm your email change</h2>
+        <p>You requested to change the email on your GastroControl account.</p>
+        <p>Confirm here:</p>
+        <p><a href="%s">Confirm email change</a></p>
+        <p>If you didn't request this, you can ignore this email.</p>
+        """.formatted(escapeHtml(confirmUrl));
+
+        safeSend(toNewEmail, displayName == null ? "" : displayName, subject, htmlBody);
+    }
+
+    public void sendEmailChangedNotification(String toOldEmail, String newEmail) {
+        if (isBlank(toOldEmail)) return;
+
+        String subject = "Your GastroControl email was changed";
+        String htmlBody = """
+        <h2>Email changed</h2>
+        <p>The email for your account was changed to: <b>%s</b></p>
+        <p>If you didn't do this, please contact support immediately.</p>
+        """.formatted(escapeHtml(newEmail));
+
+        safeSend(toOldEmail, "", subject, htmlBody);
+    }
 
 
 

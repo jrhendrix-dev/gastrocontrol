@@ -59,6 +59,10 @@ public class AccountTokenJpaEntity {
     @Column(name = "user_agent", length = 255)
     private String userAgent;
 
+    @Column(name = "new_email", length = 255)
+    private String newEmail;
+
+
     public AccountTokenJpaEntity(
             UserJpaEntity user,
             AccountTokenType type,
@@ -73,6 +77,25 @@ public class AccountTokenJpaEntity {
         this.expiresAt = expiresAt;
         this.requestedIp = requestedIp;
         this.userAgent = userAgent;
+        this.createdAt = Instant.now();
+    }
+
+    public AccountTokenJpaEntity(
+            UserJpaEntity user,
+            AccountTokenType type,
+            String tokenHash,
+            Instant expiresAt,
+            String requestedIp,
+            String userAgent,
+            String newEmail
+    ) {
+        this.user = user;
+        this.type = type;
+        this.tokenHash = tokenHash;
+        this.expiresAt = expiresAt;
+        this.requestedIp = requestedIp;
+        this.userAgent = userAgent;
+        this.newEmail = newEmail;
         this.createdAt = Instant.now();
     }
 

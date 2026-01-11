@@ -72,6 +72,43 @@ public class AccountTokenService {
         return token;
     }
 
+    @Transactional
+    public IssuedToken issueWithNewEmail(
+            UserJpaEntity user,
+            AccountTokenType type,
+            Duration ttl,
+            String ip,
+            String userAgent,
+            String newEmail
+    ) {
+        if (user == null) throw new ValidationException(Map.of("user", "User is required"));
+        if (type != AccountTokenType.EMAIL_CHANGE) {
+            throw new ValidationException(Map.of("type", "issueWithNewEmail is only for EMAIL_CHANGE tokens"));
+        }
+        if (ttl == null || ttl.isNegative() || ttl.isZero()) {
+            throw new ValidationException(Map.of("ttl", "TTL must be > 0"));
+        }
+        if (newEmail == null || newEmail.trim().isEmpty()) {
+            throw new ValidationException(Map.of("newEmail", "New email is required"));
+        }
+
+        for (AccountTokenJpaEntity t : accountTokenRepository.findAllByUserAndTypeAndUsedAtIsNull(user, type)) {
+            t.markUsed();
+        }
+
+        String raw = generateSecureToken();
+        String hash = sha256Base64(raw);
+        Instant exp = Instant.now().plus(ttl);
+
+        accountTokenRepository.save(new AccountTokenJpaEntity(
+                user, type, hash, exp, ip, userAgent, newEmail.trim().toLowerCase()
+        ));
+
+        return new IssuedToken(raw, exp);
+    }
+
+
+
     private static String generateSecureToken() {
         byte[] bytes = new byte[64];
         new SecureRandom().nextBytes(bytes);
