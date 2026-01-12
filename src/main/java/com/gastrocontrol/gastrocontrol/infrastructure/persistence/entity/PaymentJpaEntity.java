@@ -89,5 +89,7 @@ public class PaymentJpaEntity {
     public String getPaymentIntentId() { return paymentIntentId; }
     public void setPaymentIntentId(String paymentIntentId) { this.paymentIntentId = paymentIntentId; }
     public Instant getUpdatedAt() { return updatedAt; }
+    public Instant getCreatedAt() { return createdAt; }
+
 
 }

@@ -51,11 +51,27 @@ services:
       STRIPE_CURRENCY: ${STRIPE_CURRENCY:-eur}
       STRIPE_CHECKOUT_SUCCESS_URL: ${STRIPE_CHECKOUT_SUCCESS_URL:-http://localhost:4200/checkout/success?session_id={CHECKOUT_SESSION_ID}}
       STRIPE_CHECKOUT_CANCEL_URL: ${STRIPE_CHECKOUT_CANCEL_URL:-http://localhost:4200/checkout/cancel?session_id={CHECKOUT_SESSION_ID}}
-
-
-
     networks:
       - gastrocontrol-net
+
+  stripe-cli:
+    image: stripe/stripe-cli:latest
+    container_name: gastrocontrol-stripe-cli
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - gastrocontrol-net
+    environment:
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+    volumes:
+      - stripe_cli_config:/root/.config/stripe
+    command: >
+      listen
+      --api-key ${STRIPE_API_KEY}
+      --forward-to http://api:8080/api/webhooks/stripe
+      --events checkout.session.completed
+      --log-level info
 
 networks:
   gastrocontrol-net:
@@ -63,3 +79,4 @@ networks:
 
 volumes:
   gastro_mysql_data:
+  stripe_cli_config:

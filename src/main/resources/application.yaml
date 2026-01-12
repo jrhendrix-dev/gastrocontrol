@@ -50,6 +50,7 @@ security:
 
 stripe:
   api-key: ${STRIPE_API_KEY:}
+  verify-webhook-signature: false # because this is just a demo
   webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
   currency: ${STRIPE_CURRENCY:eur}
 
