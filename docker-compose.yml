@@ -24,7 +24,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: gastrocontrol-api
     restart: unless-stopped
@@ -36,16 +36,19 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: dev
       JWT_SECRET: "dev-super-long-random-string-change-me"
+
       DB_HOST: db
       DB_PORT: 3306
       DB_NAME: gastrocontrol
       DB_USER: gastrocontrol
       DB_PASSWORD: gastrocontrol
+
       MAILGUN_API_KEY: ${MAILGUN_API_KEY}
       MAILGUN_DOMAIN: ${MAILGUN_DOMAIN}
       MAILGUN_BASE_URL: ${MAILGUN_BASE_URL:-https://api.eu.mailgun.net}
       MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL:-no-reply@jonathan-hendrix.dev}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-GastroControl}
+
       STRIPE_API_KEY: ${STRIPE_API_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
       STRIPE_CURRENCY: ${STRIPE_CURRENCY:-eur}

@@ -1,8 +1,8 @@
 target
 .git
-.gitignore
+../.gitignore
 .idea
 *.iml
 node_modules
-.env
+../.env
 .DS_Store

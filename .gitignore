@@ -1,5 +1,5 @@
 # Maven
-target/
+backend/target/
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
@@ -26,6 +26,6 @@ Thumbs.db
 
 # Other
 out/
-.env
+../.env
 .env.*
 
