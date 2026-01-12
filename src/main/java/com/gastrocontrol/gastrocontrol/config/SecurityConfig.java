@@ -48,14 +48,17 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/error").permitAll()
                         .requestMatchers("/api/dev/**").permitAll()
 
+                        // public catalog
+                        .requestMatchers("/api/catalog/**").permitAll()
 
-                        // staff surface: STAFF + MANAGER + ADMIN
+                        // customer checkout + tracking (public for now; later you can add customer auth)
+                        .requestMatchers("/api/customer/**").permitAll()
+
+                        // stripe webhooks must be public
+                        .requestMatchers("/api/webhooks/**").permitAll()
+
                         .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "MANAGER", "ADMIN")
-
-                        // manager surface: MANAGER + ADMIN (admin should be able to do everything manager can)
                         .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
-
-                        // admin surface: ADMIN only
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         .anyRequest().authenticated()

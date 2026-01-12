@@ -29,6 +29,14 @@ spring:
     baseline-on-migrate: true
     clean-disabled: true
 
+stripe:
+  api-key: ${STRIPE_API_KEY:}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  currency: ${STRIPE_CURRENCY:eur}
+  checkout-success-url: ${STRIPE_CHECKOUT_SUCCESS_URL:http://localhost:4200/checkout/success?session_id={CHECKOUT_SESSION_ID}}
+  checkout-cancel-url: ${STRIPE_CHECKOUT_CANCEL_URL:http://localhost:4200/checkout/cancel?session_id={CHECKOUT_SESSION_ID}}
+
+
 mail:
   enabled: ${MAIL_ENABLED:true}
   from:

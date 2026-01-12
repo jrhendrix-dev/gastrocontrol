@@ -83,7 +83,9 @@ public class CreateOrderService {
             validatePickup(command.getPickup());
         }
 
-        OrderJpaEntity order = new OrderJpaEntity(type, OrderStatus.PENDING, table);
+        OrderStatus initial = command.getInitialStatus() == null ? OrderStatus.PENDING : command.getInitialStatus();
+        OrderJpaEntity order = new OrderJpaEntity(type, initial, table);
+
 
         // Apply delivery snapshot (only for DELIVERY)
         if (type == OrderType.DELIVERY) {

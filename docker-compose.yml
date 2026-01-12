@@ -46,6 +46,12 @@ services:
       MAILGUN_BASE_URL: ${MAILGUN_BASE_URL:-https://api.eu.mailgun.net}
       MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL:-no-reply@jonathan-hendrix.dev}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-GastroControl}
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      STRIPE_CURRENCY: ${STRIPE_CURRENCY:-eur}
+      STRIPE_CHECKOUT_SUCCESS_URL: ${STRIPE_CHECKOUT_SUCCESS_URL:-http://localhost:4200/checkout/success?session_id={CHECKOUT_SESSION_ID}}
+      STRIPE_CHECKOUT_CANCEL_URL: ${STRIPE_CHECKOUT_CANCEL_URL:-http://localhost:4200/checkout/cancel?session_id={CHECKOUT_SESSION_ID}}
+
 
 
     networks:
