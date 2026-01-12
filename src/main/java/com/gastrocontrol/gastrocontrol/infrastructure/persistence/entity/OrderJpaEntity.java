@@ -79,6 +79,9 @@ public class OrderJpaEntity {
     @Column(name = "pickup_notes", length = 500)
     private String pickupNotes;
 
+    //payment
+    @OneToOne(mappedBy = "order", fetch = FetchType.LAZY)
+    private PaymentJpaEntity payment;
 
     public OrderJpaEntity() {}
 
@@ -172,5 +175,9 @@ public class OrderJpaEntity {
 
     public String getPickupNotes() { return pickupNotes; }
     public void setPickupNotes(String pickupNotes) { this.pickupNotes = pickupNotes; }
+
+    // in OrderJpaEntity
+    public PaymentJpaEntity getPayment() { return payment; }
+
 
 }

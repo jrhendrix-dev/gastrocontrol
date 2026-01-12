@@ -1,18 +1,19 @@
 // src/main/java/com/gastrocontrol/gastrocontrol/dto/staff/OrderResponse.java
 package com.gastrocontrol.gastrocontrol.dto.staff;
 
-import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
-import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderType;
+import com.gastrocontrol.gastrocontrol.domain.enums.PaymentProvider;
+import com.gastrocontrol.gastrocontrol.domain.enums.PaymentStatus;
+import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
+import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
- * Response payload for a created order (staff-facing).
- * <p>
- * Always includes {@link OrderType}. Delivery / pickup snapshots are included
- * only when relevant to the order type.
+ * Staff-facing order response.
+ * Includes delivery/pickup snapshots when relevant and (optionally) payment summary.
  */
 public class OrderResponse {
 
@@ -32,6 +33,9 @@ public class OrderResponse {
     private PickupSnapshotDto pickup;
 
     private List<OrderItemResponse> items;
+
+    /** Present only when an order has a payment row */
+    private PaymentSummary payment;
 
     // ---------- Getters / setters ----------
 
@@ -59,7 +63,10 @@ public class OrderResponse {
     public List<OrderItemResponse> getItems() { return items; }
     public void setItems(List<OrderItemResponse> items) { this.items = items; }
 
-    // ---------- Nested DTO ----------
+    public PaymentSummary getPayment() { return payment; }
+    public void setPayment(PaymentSummary payment) { this.payment = payment; }
+
+    // ---------- Nested DTOs ----------
 
     public static class OrderItemResponse {
         private Long productId;
@@ -78,5 +85,36 @@ public class OrderResponse {
 
         public int getUnitPriceCents() { return unitPriceCents; }
         public void setUnitPriceCents(int unitPriceCents) { this.unitPriceCents = unitPriceCents; }
+    }
+
+    public static class PaymentSummary {
+        private PaymentProvider provider;
+        private PaymentStatus status;
+        private int amountCents;
+        private String currency;
+        private String checkoutSessionId;
+        private String paymentIntentId;
+        private Instant updatedAt;
+
+        public PaymentProvider getProvider() { return provider; }
+        public void setProvider(PaymentProvider provider) { this.provider = provider; }
+
+        public PaymentStatus getStatus() { return status; }
+        public void setStatus(PaymentStatus status) { this.status = status; }
+
+        public int getAmountCents() { return amountCents; }
+        public void setAmountCents(int amountCents) { this.amountCents = amountCents; }
+
+        public String getCurrency() { return currency; }
+        public void setCurrency(String currency) { this.currency = currency; }
+
+        public String getCheckoutSessionId() { return checkoutSessionId; }
+        public void setCheckoutSessionId(String checkoutSessionId) { this.checkoutSessionId = checkoutSessionId; }
+
+        public String getPaymentIntentId() { return paymentIntentId; }
+        public void setPaymentIntentId(String paymentIntentId) { this.paymentIntentId = paymentIntentId; }
+
+        public Instant getUpdatedAt() { return updatedAt; }
+        public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
     }
 }

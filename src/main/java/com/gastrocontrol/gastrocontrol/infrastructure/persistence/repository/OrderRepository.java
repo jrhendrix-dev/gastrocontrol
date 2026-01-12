@@ -13,12 +13,12 @@ import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<OrderJpaEntity, Long>, JpaSpecificationExecutor<OrderJpaEntity> {
 
-    @EntityGraph(attributePaths = {"items", "items.product", "diningTable"})
+    @EntityGraph(attributePaths = {"items", "items.product", "diningTable", "payment"})
     Optional<OrderJpaEntity> findHydratedById(Long id);
 
     /**
      * Hydrated paginated search (items + product + diningTable) to avoid N+1 in list screens.
      */
-    @EntityGraph(attributePaths = {"items", "items.product", "diningTable"})
+    @EntityGraph(attributePaths = {"items", "items.product", "diningTable", "payment"})
     Page<OrderJpaEntity> findAll(Specification<OrderJpaEntity> spec, Pageable pageable);
 }

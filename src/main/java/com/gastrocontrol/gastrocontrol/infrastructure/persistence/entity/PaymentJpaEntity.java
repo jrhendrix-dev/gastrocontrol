@@ -88,4 +88,6 @@ public class PaymentJpaEntity {
     public void setCheckoutSessionId(String checkoutSessionId) { this.checkoutSessionId = checkoutSessionId; }
     public String getPaymentIntentId() { return paymentIntentId; }
     public void setPaymentIntentId(String paymentIntentId) { this.paymentIntentId = paymentIntentId; }
+    public Instant getUpdatedAt() { return updatedAt; }
+
 }
