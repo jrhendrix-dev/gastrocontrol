@@ -57,4 +57,24 @@ public class StripePaymentGateway implements PaymentGateway {
             throw new RuntimeException("Failed to create Stripe Checkout Session", e);
         }
     }
+
+    @Override
+    public CheckoutSessionStatusResult getCheckoutSessionStatus(String checkoutSessionId) {
+        try {
+            Session session = Session.retrieve(checkoutSessionId);
+
+            return new CheckoutSessionStatusResult(
+                    session.getId(),
+                    session.getStatus(),
+                    session.getPaymentStatus(),
+                    session.getPaymentIntent()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Failed to retrieve Stripe Checkout Session " + checkoutSessionId,
+                    e
+            );
+        }
+    }
+
 }

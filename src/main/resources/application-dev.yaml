@@ -36,6 +36,10 @@ stripe:
   checkout-success-url: ${STRIPE_CHECKOUT_SUCCESS_URL:http://localhost:4200/checkout/success?session_id={CHECKOUT_SESSION_ID}}
   checkout-cancel-url: ${STRIPE_CHECKOUT_CANCEL_URL:http://localhost:4200/checkout/cancel?session_id={CHECKOUT_SESSION_ID}}
 
+payments:
+  reconcile:
+    enabled: true
+    fixed-delay-ms: 60000  # every 60s (tweak to 10s while developing if you want)
 
 mail:
   enabled: ${MAIL_ENABLED:true}

@@ -12,5 +12,10 @@ public interface PaymentRepository extends JpaRepository<PaymentJpaEntity, Long>
     Optional<PaymentJpaEntity> findByCheckoutSessionId(String checkoutSessionId);
     Optional<PaymentJpaEntity> findByOrder_Id(Long orderId);
 
-    List<PaymentJpaEntity> findByStatusAndCreatedAtBefore(PaymentStatus status, Instant before);
+    List<PaymentJpaEntity> findTop50ByStatusOrderByIdAsc(PaymentStatus status);
+
+    List<PaymentJpaEntity> findTop50ByStatusAndUpdatedAtBeforeOrderByUpdatedAtAsc(
+            PaymentStatus status,
+            Instant updatedBefore
+    );
 }
