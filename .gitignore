@@ -26,8 +26,25 @@ Thumbs.db
 
 # Other
 out/
+
+# Environment
 ../.env
 .env.*
-
-
 .env
+
+# Angular
+.angular/
+dist/
+out-tsc/
+.angular/
+
+# Typescript
+*.tsbuildinfo
+
+# IDEs
+.idea/
+.vscode/
+
+# Node
+node_modules/
+**/node_modules/

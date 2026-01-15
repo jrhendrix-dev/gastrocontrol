@@ -1,0 +1,11 @@
+# Dev image: stable + fast + matches Angular support
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Avoid running as root in dev (best practice)
+RUN addgroup -S app && adduser -S app -G app
+USER app
+
+# Note: deps are installed via docker compose command to keep rebuilds quick
+CMD ["sh", "-lc", "npm ci || npm install && npm run start -- --host 0.0.0.0 --poll=2000"]

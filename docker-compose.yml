@@ -76,6 +76,20 @@ services:
       --events checkout.session.completed
       --log-level info
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: gastrocontrol-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "4200:80"
+    networks:
+      - gastrocontrol-net
+
+
 networks:
   gastrocontrol-net:
     driver: bridge
