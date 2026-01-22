@@ -1,13 +1,33 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script>
+    (function () {
+      const dump = (label, payload) => {
+        try {
+          const msg = payload?.message || String(payload);
+          const stack = payload?.error?.stack || payload?.stack || '';
+          const top20 = String(stack).split('\n').slice(0, 20).join('\n');
+          console.log(`[BOOT][${label}]`, msg);
+          if (top20) console.log(`[BOOT][${label}][STACK20]\n` + top20);
+          window.__BOOT_LAST__ = { label, msg, stack };
+        } catch (e) {
+          console.log('[BOOT][DUMP_FAILED]', e);
+        }
+      };
+
+      window.addEventListener('error', (e) => dump('window.error', e));
+      window.addEventListener('unhandledrejection', (e) => dump('unhandledrejection', e?.reason));
+    })();
+  </script>
+
   <meta charset="utf-8">
-  <title>GastrocontrolFrontend</title>
+  <title>GastroControl</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/png" href="/favicon.png?v=3">
+  <link rel="icon" type="image/png" href="assets/pics/favicon.png">
 </head>
 <body>
-  <app-root></app-root>
+<app-root></app-root>
 </body>
 </html>

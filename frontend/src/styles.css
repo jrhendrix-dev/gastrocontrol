@@ -1,3 +1,76 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  /* GastroControl palette (aligned to tailwind.config.js) */
+  --gc-brand: #0F2F24;        /* brand.green */
+  --gc-brand-strong: #0B241B; /* darker hover */
+  --gc-accent: #E6B85C;       /* brand.gold */
+  --gc-surface: #F7F3EA;      /* brand.white */
+
+  /* Text colors */
+  --gc-ink: #0B241B;          /* main text on light surfaces */
+  --gc-ink-muted: rgba(11, 36, 27, 0.70);
+
+  /* Navbar height (match BusinessFirst feel) */
+  --gc-nav-height: 4.5rem;
+
+}
+
+body {
+  color: var(--gc-ink);
+  background: var(--gc-surface);
+}
+
+/* Hide number spinners */
+.no-spin::-webkit-outer-spin-button,
+.no-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spin {
+  -moz-appearance: textfield;
+}
+
+/* ---- Button system ---- */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2
+    rounded-md px-3 py-1.5 text-sm font-medium
+    transition-colors select-none
+    border border-transparent
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+    disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-sm { @apply px-2 py-1 text-xs; }
+  .btn-lg { @apply px-4 py-2 text-base; }
+
+  /* Variants */
+  .btn-primary {
+    @apply text-white shadow-sm focus-visible:ring-black/30;
+    background: var(--gc-brand);
+  }
+  .btn-primary:hover { background: var(--gc-brand-strong); }
+
+  .btn-accent {
+    @apply text-black shadow-sm focus-visible:ring-black/30;
+    background: var(--gc-accent);
+  }
+  .btn-accent:hover { filter: brightness(0.95); }
+
+  .btn-outline {
+    @apply bg-transparent border-slate-400 text-slate-800
+    hover:bg-white/40 focus-visible:ring-slate-400;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-slate-800 hover:bg-white/40 focus-visible:ring-slate-400;
+  }
+
+  .btn-success  { @apply bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-600; }
+  .btn-danger   { @apply bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-600; }
+
+  .btn-icon { @apply p-2 aspect-square; }
+}

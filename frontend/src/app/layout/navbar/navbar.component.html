@@ -1,0 +1,153 @@
+<nav class="sticky top-0 z-40 w-full shadow"
+     style="background: var(--gc-brand); color: var(--gc-surface);">
+
+  <ng-container *ngIf="visibleItems() as items">
+
+    <!-- Desktop -->
+    <div class="mx-auto hidden max-w-6xl grid-cols-[300px_1fr_220px] items-center gap-4 px-4 py-5 md:grid">
+
+      <!-- Logo -->
+      <a routerLink="/" class="flex items-center" (click)="goHome($event)">
+        <img src="assets/pics/logo.png" alt="GastroControl"
+             class="h-12 w-auto md:h-[64px] lg:h-[72px] xl:h-[80px] object-contain" />
+      </a>
+
+      <!-- Center links -->
+      <ul class="flex items-center justify-center gap-14 text-[15.5px] font-medium tracking-wide uppercase">
+        <li *ngFor="let item of items; trackBy: trackItem" class="group relative">
+          <a [routerLink]="item.route"
+             routerLinkActive="opacity-100"
+             class="relative px-2 py-1 transition-colors opacity-90 hover:opacity-100"
+             (click)="closeMenus()">
+            {{ item.label }}
+            <span class="absolute left-0 -bottom-0.5 block h-0.5 w-0 transition-all duration-200 group-hover:w-full"
+                  style="background: var(--gc-accent);"></span>
+          </a>
+        </li>
+      </ul>
+
+      <!-- Right side -->
+      <div class="flex items-center justify-end gap-3">
+
+        <!-- Demo mode toggle -->
+        <button class="rounded-md border px-3 py-2 font-semibold transition hover:bg-white/10"
+                style="border-color: rgba(255,255,255,0.6)"
+                (click)="toggleModeForDemo()"
+                [attr.title]="'Modo actual: ' + mode()">
+          {{ mode() === 'staff' ? 'Staff' : 'Public' }}
+        </button>
+
+        <!-- Logged out -->
+        <ng-container *ngIf="!auth.loggedIn()">
+          <a routerLink="/login"
+             class="rounded-md px-3 py-2 font-semibold transition whitespace-nowrap"
+             style="background: var(--gc-accent); color: #000;"
+             (click)="closeMenus()">
+            Iniciar sesión
+          </a>
+        </ng-container>
+
+        <!-- Logged in account -->
+        <div *ngIf="auth.loggedIn()" class="relative">
+          <button
+            class="relative flex items-center gap-2 px-2 py-1 transition-colors hover:opacity-100 opacity-90"
+            (click)="toggleAccountMenu()"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="accountOpen"
+          >
+            <span>{{ auth.fullName() }}</span>
+            <span class="mt-1 inline-block border-x-transparent border-t-8 border-b-0 border-l-8 border-r-8"
+                  style="border-top-color: var(--gc-accent);"></span>
+          </button>
+
+          <div *ngIf="accountOpen"
+               class="absolute right-0 z-20 mt-3 w-72 overflow-hidden rounded-md shadow-lg ring-1 ring-black/10"
+               style="background: var(--gc-brand); color: var(--gc-surface);">
+            <div class="px-4 py-3 text-sm">
+              <p class="font-semibold">{{ auth.fullName() }}</p>
+              <p class="truncate opacity-80">{{ auth.email() }}</p>
+            </div>
+            <div class="border-t border-white/10"></div>
+
+            <a routerLink="/me"
+               class="block px-4 py-2 hover:bg-white/10"
+               (click)="closeMenus()">
+              Mi perfil
+            </a>
+
+            <a *ngIf="panelRoute() as pr"
+               [routerLink]="pr"
+               class="block px-4 py-2 hover:bg-white/10"
+               (click)="closeMenus()">
+              {{ panelLabel() }}
+            </a>
+
+            <button class="block w-full px-4 py-2 text-left hover:bg-white/10"
+                    (click)="closeMenus(); logout()">
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile header -->
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:hidden">
+      <a routerLink="/" class="flex items-center" (click)="goHome($event)">
+        <img src="assets/pics/logo.png" alt="GastroControl" class="h-10 w-auto" />
+      </a>
+      <button class="rounded p-2 focus:outline-none focus:ring-2 focus:ring-white/50"
+              (click)="open = !open"
+              aria-label="Abrir menú">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             class="h-7 w-7"
+             fill="none"
+             viewBox="0 0 24 24"
+             stroke="currentColor">
+          <path stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Mobile menu -->
+    <div *ngIf="open" class="border-t border-white/10 md:hidden">
+      <a *ngFor="let item of items; trackBy: trackItem"
+         [routerLink]="item.route"
+         class="block px-4 py-3 hover:bg-white/10"
+         (click)="open=false">
+        {{ item.label }}
+      </a>
+
+      <a *ngIf="!auth.loggedIn()"
+         routerLink="/login"
+         class="block px-4 py-3 hover:bg-white/10"
+         (click)="open=false">
+        Iniciar sesión
+      </a>
+
+      <a *ngIf="auth.loggedIn()"
+         routerLink="/me"
+         class="block px-4 py-3 hover:bg-white/10"
+         (click)="open=false">
+        Mi perfil
+      </a>
+
+      <a *ngIf="auth.loggedIn() && panelRoute() as pr"
+         [routerLink]="pr"
+         class="block px-4 py-3 hover:bg-white/10"
+         (click)="open=false">
+        {{ panelLabel() }}
+      </a>
+
+      <button *ngIf="auth.loggedIn()"
+              class="block w-full text-left px-4 py-3 hover:bg-white/10"
+              (click)="open=false; logout()">
+        Cerrar sesión
+      </button>
+    </div>
+
+  </ng-container>
+</nav>

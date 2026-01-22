@@ -5,10 +5,16 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+
+# Force devDependencies (so ng exists) even if env defaults to production
+RUN npm ci --include=dev
+
+# Debug helpers (remove later if you want)
+RUN node -v && npm -v && ls -la node_modules/.bin | head -n 20
 
 COPY . .
 RUN npm run build
+
 
 # ---- runtime stage ----
 FROM nginx:alpine

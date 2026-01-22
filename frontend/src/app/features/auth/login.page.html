@@ -1,0 +1,35 @@
+<section class="mx-auto max-w-md px-4 py-10">
+  <a routerLink="/" class="inline-flex items-center gap-2 text-sm font-semibold opacity-90 hover:opacity-100">
+    ← Volver al inicio
+  </a>
+  <div class="rounded-2xl p-6 shadow"
+       style="background: var(--gc-surface); color: var(--gc-ink); border: 1px solid rgba(0,0,0,0.06);">
+    <h2 class="text-2xl font-semibold">Login</h2>
+
+    <form class="mt-6 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+      <div>
+        <label class="text-sm font-medium">Email</label>
+        <input class="mt-1 w-full rounded-md border px-3 py-2"
+               style="border-color: rgba(0,0,0,0.15);"
+               formControlName="email" type="email" autocomplete="email">
+        <p class="mt-1 text-sm text-rose-600" *ngIf="form.get('email')?.errors?.['server']">
+          {{ form.get('email')?.errors?.['server'] }}
+        </p>
+      </div>
+
+      <div>
+        <label class="text-sm font-medium">Password</label>
+        <input class="mt-1 w-full rounded-md border px-3 py-2"
+               style="border-color: rgba(0,0,0,0.15);"
+               formControlName="password" type="password" autocomplete="current-password">
+        <p class="mt-1 text-sm text-rose-600" *ngIf="form.get('password')?.errors?.['server']">
+          {{ form.get('password')?.errors?.['server'] }}
+        </p>
+      </div>
+
+      <button class="btn btn-primary w-full" [disabled]="auth.loading() || form.invalid">
+        {{ auth.loading() ? 'Entrando...' : 'Entrar' }}
+      </button>
+    </form>
+  </div>
+</section>

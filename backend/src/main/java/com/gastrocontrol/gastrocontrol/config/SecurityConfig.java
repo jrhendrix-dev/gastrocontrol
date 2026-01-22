@@ -35,13 +35,13 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> {}) // ✅ enables CORS using CorsConfigurationSource bean
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(eh -> eh
                         .authenticationEntryPoint(restAuthenticationEntryPoint) // 401
                         .accessDeniedHandler(restAccessDeniedHandler)           // 403
                 )
-// SecurityConfig.java (only the authorizeHttpRequests part)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
@@ -51,7 +51,7 @@ public class SecurityConfig {
                         // public catalog
                         .requestMatchers("/api/catalog/**").permitAll()
 
-                        // customer checkout + tracking (public for now; later you can add customer auth)
+                        // customer checkout + tracking (public for now)
                         .requestMatchers("/api/customer/**").permitAll()
 
                         // stripe webhooks must be public
@@ -63,12 +63,12 @@ public class SecurityConfig {
 
                         .anyRequest().authenticated()
                 )
-
                 .authenticationProvider(daoAuthProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 
     @Bean
     public DaoAuthenticationProvider daoAuthProvider() {

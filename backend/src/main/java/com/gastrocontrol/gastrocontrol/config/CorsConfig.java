@@ -3,8 +3,8 @@ package com.gastrocontrol.gastrocontrol.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 
 import java.util.List;
 
@@ -12,29 +12,23 @@ import java.util.List;
 public class CorsConfig {
 
     @Bean
-    public CorsFilter corsFilter() {
-        CorsConfiguration config = new CorsConfiguration();
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration c = new CorsConfiguration();
 
-        // Required for cookies across origins
-        config.setAllowCredentials(true);
+        // Explicit origin required when allowCredentials=true
+        c.setAllowedOrigins(List.of("http://localhost:4200"));
+        c.setAllowCredentials(true);
 
-        // Must be explicit when allowCredentials=true
-        // If you later want multiple envs, add them here.
-        config.setAllowedOrigins(List.of(
-                "http://localhost:4200"
-        ));
+        c.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        // include any headers you send (Authorization, Content-Type, etc.)
+        c.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
 
-        // Add any custom headers your frontend uses
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-
-        // Not strictly required for cookies, but OK.
-        config.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
+        // optional: Set-Cookie is the important one for your refresh cookie
+        c.setExposedHeaders(List.of("Set-Cookie"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-
-        return new CorsFilter(source);
+        source.registerCorsConfiguration("/**", c);
+        return source;
     }
 }
