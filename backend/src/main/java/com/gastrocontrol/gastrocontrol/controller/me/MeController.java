@@ -52,7 +52,7 @@ public class MeController {
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody ConfirmEmailChangeRequest req
     ) {
-        meService.confirmEmailChange(principal, req);
+        meService.confirmEmailChange(req);
         return ResponseEntity.ok(ApiResponse.ok("Email updated"));
     }
 

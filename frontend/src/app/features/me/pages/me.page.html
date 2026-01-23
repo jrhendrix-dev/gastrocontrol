@@ -78,4 +78,91 @@
 
     </form>
   </div>
+
+
+  <!-------------------------------- Password change form ----------------------------->
+  <div class="mt-6 rounded-xl border bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-semibold">Cambiar contraseña</h2>
+    <p class="mt-1 text-sm opacity-75">Al cambiar la contraseña se cierran sesiones activas.</p>
+
+    <form [formGroup]="passwordForm" (ngSubmit)="savePassword()" class="mt-4 grid gap-4">
+      <div>
+        <label class="mb-1 block text-sm font-medium">Contraseña actual</label>
+        <input class="w-full rounded-md border px-3 py-2" type="password" formControlName="currentPassword" />
+        <p *ngIf="pwFieldErrors()['currentPassword']" class="mt-1 text-xs text-red-700">
+          {{ pwFieldErrors()['currentPassword'] }}
+        </p>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Nueva contraseña</label>
+        <input class="w-full rounded-md border px-3 py-2" type="password" formControlName="newPassword" />
+        <p *ngIf="pwFieldErrors()['newPassword']" class="mt-1 text-xs text-red-700">
+          {{ pwFieldErrors()['newPassword'] }}
+        </p>
+        <p *ngIf="passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.hasError('minlength')"
+           class="mt-1 text-xs text-red-700">
+          Mínimo 8 caracteres.
+        </p>
+        <p *ngIf="passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.hasError('maxlength')"
+           class="mt-1 text-xs text-red-700">
+          Máximo 72 caracteres.
+        </p>
+      </div>
+
+      <div class="mt-2">
+        <button
+          type="submit"
+          class="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          [disabled]="pwSaving() || passwordForm.invalid"
+        >
+          {{ pwSaving() ? 'Guardando...' : 'Cambiar contraseña' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-------------------------------- Email change form ----------------------------->
+  <div class="mt-6 rounded-xl border bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-semibold">Cambiar email</h2>
+    <p class="mt-1 text-sm opacity-75">Te enviaremos un enlace al nuevo email para confirmar.</p>
+
+    <div *ngIf="emailInfo()" class="mt-3 rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm">
+      {{ emailInfo() }}
+    </div>
+
+    <form [formGroup]="emailForm" (ngSubmit)="requestEmailChange()" class="mt-4 grid gap-4">
+      <div>
+        <label class="mb-1 block text-sm font-medium">Nuevo email</label>
+        <input class="w-full rounded-md border px-3 py-2" type="email" formControlName="newEmail" />
+        <p *ngIf="emailFieldErrors()['newEmail']" class="mt-1 text-xs text-red-700">
+          {{ emailFieldErrors()['newEmail'] }}
+        </p>
+        <p *ngIf="emailForm.controls.newEmail.touched && emailForm.controls.newEmail.hasError('email')"
+           class="mt-1 text-xs text-red-700">
+          Email inválido.
+        </p>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Contraseña actual</label>
+        <input class="w-full rounded-md border px-3 py-2" type="password" formControlName="password" />
+        <p *ngIf="emailFieldErrors()['password']" class="mt-1 text-xs text-red-700">
+          {{ emailFieldErrors()['password'] }}
+        </p>
+      </div>
+
+      <div class="mt-2">
+        <button
+          type="submit"
+          class="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          [disabled]="emailSaving() || emailForm.invalid"
+        >
+          {{ emailSaving() ? 'Enviando...' : 'Enviar confirmación' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+
 </div>

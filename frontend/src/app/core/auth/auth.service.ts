@@ -10,6 +10,7 @@ import {
   RefreshResponse,
 } from './auth.types';
 import { TokenStore } from './token-store.service';
+import { ChangePasswordRequest, RequestEmailChangeRequest, ConfirmEmailChangeRequest } from '../../features/me/me.types';
 
 export type UpdateProfileRequest = {
   firstName: string | null;
@@ -27,6 +28,19 @@ export class AuthService {
   meSig = this._me;
   loading = signal(false);
 
+  /** call ONCE at app start */
+  bootstrap() {
+    // Attempt refresh using HttpOnly cookie.
+    // If no cookie/session exists -> this will 401 and we just stay logged out.
+    return this.refresh().pipe(
+      switchMap(() => this.me()),
+      catchError(() => {
+        this.clearAuthLocal();
+        return of(null);
+      }),
+    );
+  }
+
   accessToken(): string | null {
     return this.tokenStore.accessToken();
   }
@@ -37,6 +51,11 @@ export class AuthService {
 
   private clearAccessToken() {
     this.tokenStore.clear();
+  }
+
+  loggedIn(): boolean {
+    // "loggedIn" in UI should mean: we have a loaded user (or at least a token)
+    return !!this._me() || !!this.accessToken();
   }
 
   /**
@@ -63,15 +82,10 @@ export class AuthService {
     ).subscribe();
   }
 
-  loggedIn(): boolean {
-    return !!this.accessToken();
-  }
-
+  /** Backend returns SINGLE role: ADMIN | STAFF | MANAGER | CUSTOMER etc */
   roles(): string[] {
-    const me = this._me();
-    if (!me?.role) return [];
-    const r = me.role.startsWith('ROLE_') ? me.role : `ROLE_${me.role}`;
-    return [r];
+    const role = this._me()?.role;
+    return role ? [`ROLE_${role}`] : [];
   }
 
 
@@ -94,12 +108,26 @@ export class AuthService {
       })
       .pipe(
         tap(res => this.setAccessToken(res.data.accessToken)),
-        switchMap(() => this.me()), // load user after login
-        tap(() => undefined),
+
+        // Try to load /me, but don't let a transient 401 make login look like it failed
+        switchMap(() =>
+          this.me().pipe(
+            catchError(err =>
+              this.refresh().pipe(
+                switchMap(() => this.me()),
+                catchError(() => {
+                  this.clearAuthLocal();
+                  return throwError(() => err);
+                }),
+              ),
+            ),
+          ),
+        ),
+
         finalize(() => this.loading.set(false)),
-        catchError(err => throwError(() => err)),
       );
   }
+
 
   me() {
     return this.http.get<ApiResponse<MeResponse>>(`${this.API}/api/me`).pipe(
@@ -145,5 +173,23 @@ export class AuthService {
         map(res => res.data),
         tap((u) => this._me.set(u)), // <-- THIS is step 5: navbar updates instantly
       );
+  }
+
+  changePassword(req: ChangePasswordRequest) {
+    return this.http
+      .put<ApiResponse<void>>(`${this.API}/api/me/password`, req)
+      .pipe(map(() => void 0));
+  }
+
+  requestEmailChange(req: RequestEmailChangeRequest) {
+    return this.http
+      .post<ApiResponse<void>>(`${this.API}/api/me/email-change/request`, req)
+      .pipe(map(() => void 0));
+  }
+
+  confirmEmailChange(req: ConfirmEmailChangeRequest) {
+    return this.http
+      .post<ApiResponse<void>>(`${this.API}/api/me/email-change/confirm`, req)
+      .pipe(map(() => void 0));
   }
 }

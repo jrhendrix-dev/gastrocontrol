@@ -1,10 +1,17 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AuthService } from './core/auth/auth.service';
 
 @Component({
-  selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet],
+  selector: 'gc-root',
   template: `<router-outlet />`,
 })
-export class AppComponent {}
+export class AppComponent {
+  private auth = inject(AuthService);
+
+  constructor() {
+    this.auth.hydrate();
+  }
+}

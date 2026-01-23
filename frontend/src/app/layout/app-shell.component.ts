@@ -1,3 +1,4 @@
+// src/app/layout/app-shell.component.ts
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
@@ -7,13 +8,14 @@ import { FooterComponent } from './footer/footer.component';
 import { ToastContainerComponent } from '../core/ui/toast/toast-container.component';
 import { DrawerComponent } from '../core/ui/drawer/drawer.component';
 import { DrawerService } from '../core/ui/drawer/drawer.service';
+import { AuthService } from '../core/auth/auth.service';
 
 @Component({
   standalone: true,
   selector: 'gc-app-shell',
   imports: [
-    CommonModule,          // gives you *ngIf, *ngFor, etc.
-    NgTemplateOutlet,      // explicit outlet directive (optional if CommonModule is present, but keeps IDE happy)
+    CommonModule,
+    NgTemplateOutlet,
     RouterOutlet,
     NavbarComponent,
     FooterComponent,
@@ -47,4 +49,10 @@ import { DrawerService } from '../core/ui/drawer/drawer.service';
 })
 export class AppShellComponent {
   drawer = inject(DrawerService);
+  private auth = inject(AuthService);
+
+  constructor() {
+    // hydrate session on hard refresh
+    this.auth.bootstrap().subscribe();
+  }
 }

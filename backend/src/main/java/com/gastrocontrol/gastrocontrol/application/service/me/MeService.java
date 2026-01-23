@@ -131,16 +131,13 @@ public class MeService {
     }
 
     @Transactional
-    public void confirmEmailChange(UserPrincipal principal, ConfirmEmailChangeRequest req) {
-        if (principal == null) throw new ValidationException(Map.of("auth", "Not authenticated"));
+    public void confirmEmailChange(ConfirmEmailChangeRequest req) {
         if (req == null) throw new ValidationException(Map.of("request", "Request body is required"));
 
         var token = accountTokenService.validateOrThrow(req.token(), AccountTokenType.EMAIL_CHANGE);
 
         UserJpaEntity tokenUser = token.getUser();
-        if (!tokenUser.getId().equals(principal.getId())) {
-            throw new ValidationException(Map.of("token", "Token does not belong to this user"));
-        }
+
         if (!tokenUser.isActive()) throw new BusinessRuleViolationException(Map.of("account", "User is disabled"));
 
         String newEmail = token.getNewEmail();

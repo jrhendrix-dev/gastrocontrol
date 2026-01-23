@@ -4,6 +4,7 @@ import { HomePage } from './features/home/home.page';
 import { LoginPage } from './features/auth/login.page';
 import { PlaceholderPage } from './features/placeholder/placeholder.page';
 import { MePage } from './features/me/pages/me.page';
+import {ConfirmEmailChangePage} from '@app/app/features/me/pages/confirm-email-change.page';
 
 export const routes: Routes = [
   // Standalone pages (no navbar/footer)
@@ -18,6 +19,8 @@ export const routes: Routes = [
 
       // My profile
       { path: 'me', component: MePage },
+      { path: 'confirm-email-change', component: ConfirmEmailChangePage },
+
 
       // temporary routes
       { path: 'staff/pos', component: PlaceholderPage },

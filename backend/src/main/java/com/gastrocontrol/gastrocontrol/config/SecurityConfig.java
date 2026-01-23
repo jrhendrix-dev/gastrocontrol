@@ -57,12 +57,16 @@ public class SecurityConfig {
                         // stripe webhooks must be public
                         .requestMatchers("/api/webhooks/**").permitAll()
 
+                        // ✅ email confirm link should not require auth
+                        .requestMatchers(HttpMethod.POST, "/api/me/email-change/confirm").permitAll()
+
                         .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "MANAGER", "ADMIN")
                         .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         .anyRequest().authenticated()
                 )
+
                 .authenticationProvider(daoAuthProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

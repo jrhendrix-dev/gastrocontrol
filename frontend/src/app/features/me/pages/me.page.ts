@@ -28,6 +28,23 @@ export class MePage {
   formError = signal<string | null>(null);
   fieldErrors = signal<Record<string, string>>({});
 
+  pwSaving = signal(false);
+  pwFieldErrors = signal<Record<string, string>>({});
+
+  emailSaving = signal(false);
+  emailFieldErrors = signal<Record<string, string>>({});
+  emailInfo = signal<string | null>(null);
+
+  passwordForm = this.fb.group({
+    currentPassword: this.fb.control('', [Validators.required]),
+    newPassword: this.fb.control('', [Validators.required, Validators.minLength(8), Validators.maxLength(72)]),
+  });
+
+  emailForm = this.fb.group({
+    newEmail: this.fb.control('', [Validators.required, Validators.email]),
+    password: this.fb.control('', [Validators.required]),
+  });
+
   form = this.fb.group({
     firstName: this.fb.control<string | null>(null, [Validators.maxLength(80)]),
     lastName: this.fb.control<string | null>(null, [Validators.maxLength(120)]),
@@ -88,6 +105,49 @@ export class MePage {
       });
   }
 
+  savePassword() {
+    this.pwFieldErrors.set({});
+    if (this.passwordForm.invalid) {
+      this.passwordForm.markAllAsTouched();
+      return;
+    }
+
+    this.pwSaving.set(true);
+    this.auth.changePassword(this.passwordForm.getRawValue() as any)
+      .pipe(finalize(() => this.pwSaving.set(false)))
+      .subscribe({
+        next: () => {
+          this.toast.success('Contraseña actualizada');
+          this.passwordForm.reset();
+        },
+        error: (err) => this.applyValidationErrors(err, this.pwFieldErrors, 'No se pudo cambiar la contraseña'),
+      });
+  }
+
+  requestEmailChange() {
+    this.emailFieldErrors.set({});
+    this.emailInfo.set(null);
+
+    if (this.emailForm.invalid) {
+      this.emailForm.markAllAsTouched();
+      return;
+    }
+
+    this.emailSaving.set(true);
+    this.auth.requestEmailChange(this.emailForm.getRawValue() as any)
+      .pipe(finalize(() => this.emailSaving.set(false)))
+      .subscribe({
+        next: () => {
+          this.toast.success('Te he enviado un email de confirmación');
+          this.emailInfo.set('Revisa tu bandeja de entrada y confirma el cambio desde el enlace recibido.');
+          // keep newEmail visible, clear password
+          this.emailForm.patchValue({ password: '' });
+          this.emailForm.markAsPristine();
+        },
+        error: (err) => this.applyValidationErrors(err, this.emailFieldErrors, 'No se pudo iniciar el cambio de email'),
+      });
+  }
+
 
   private applyApiError(err: any) {
     const body = err?.error;
@@ -102,5 +162,19 @@ export class MePage {
 
     this.toast.error('No se pudo guardar el perfil');
   }
+
+  private applyValidationErrors(
+    err: any,
+    target: { set(v: Record<string, string>): void },
+    fallbackMessage: string
+  ) {
+    const body = err?.error;
+    if (body?.error?.code === 'VALIDATION_FAILED' && body.error.details) {
+      target.set(body.error.details);
+      return;
+    }
+    this.toast.error(fallbackMessage);
+  }
+
 
 }

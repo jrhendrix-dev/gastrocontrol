@@ -1,22 +1,23 @@
 import { Injectable, signal } from '@angular/core';
 
-/**
- * Holds auth tokens in-memory (and optionally persists them).
- * This service MUST NOT depend on HttpClient to avoid DI cycles with interceptors.
- */
+const LS_KEY = 'gc_access_token';
+
 @Injectable({ providedIn: 'root' })
 export class TokenStore {
-  private _accessToken = signal<string | null>(null);
+  private tokenSig = signal<string | null>(localStorage.getItem(LS_KEY));
 
   accessToken(): string | null {
-    return this._accessToken();
+    const t = this.tokenSig();
+    return t && t.trim().length ? t : null;
   }
 
-  setAccessToken(token: string | null): void {
-    this._accessToken.set(token);
+  setAccessToken(token: string) {
+    this.tokenSig.set(token);
+    localStorage.setItem(LS_KEY, token);
   }
 
-  clear(): void {
-    this._accessToken.set(null);
+  clear() {
+    this.tokenSig.set(null);
+    localStorage.removeItem(LS_KEY);
   }
 }
