@@ -36,7 +36,7 @@ public class MeService {
     private final AccountTokenService accountTokenService;
     private final TransactionalEmailService transactionalEmailService;
 
-    @Transactional
+    @Transactional(Transactional.TxType.SUPPORTS)
     public MeResponse me(UserPrincipal principal) {
         if (principal == null) {
             throw new ValidationException(Map.of("auth", "Not authenticated"));
@@ -169,4 +169,48 @@ public class MeService {
         String full = (first + " " + last).trim();
         return full.isBlank() ? "" : full;
     }
+
+    @Transactional
+    public MeResponse updateProfile(UserPrincipal principal, com.gastrocontrol.gastrocontrol.dto.me.UpdateProfileRequest req) {
+        if (principal == null) throw new ValidationException(Map.of("auth", "Not authenticated"));
+        if (req == null) throw new ValidationException(Map.of("request", "Request body is required"));
+
+        UserJpaEntity user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        if (!user.isActive()) {
+            throw new BusinessRuleViolationException(Map.of("account", "User is disabled"));
+        }
+
+        if (req.firstName() != null) user.setFirstName(normalize(req.firstName()));
+        if (req.lastName() != null) user.setLastName(normalize(req.lastName()));
+        if (req.phone() != null) user.setPhone(normalize(req.phone()));
+
+        // Explicit save is fine; JPA dirty checking would also persist at tx commit.
+        userRepository.save(user);
+
+        return new MeResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getRole(),
+                user.isActive(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhone(),
+                user.getCreatedAt(),
+                user.getLastLoginAt()
+        );
+    }
+
+    /**
+     * Normalizes input strings so:
+     * - trims whitespace
+     * - converts empty/blank to null (interpreted as "clear the field")
+     */
+    private static String normalize(String s) {
+        if (s == null) return null;
+        String trimmed = s.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
 }

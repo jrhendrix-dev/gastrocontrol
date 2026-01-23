@@ -6,6 +6,7 @@ import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
 import com.gastrocontrol.gastrocontrol.dto.me.ChangePasswordRequest;
 import com.gastrocontrol.gastrocontrol.dto.me.ConfirmEmailChangeRequest;
 import com.gastrocontrol.gastrocontrol.dto.me.RequestEmailChangeRequest;
+import com.gastrocontrol.gastrocontrol.dto.me.UpdateProfileRequest;
 import com.gastrocontrol.gastrocontrol.security.UserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -53,5 +54,13 @@ public class MeController {
     ) {
         meService.confirmEmailChange(principal, req);
         return ResponseEntity.ok(ApiResponse.ok("Email updated"));
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<MeResponse>> updateProfile(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody UpdateProfileRequest req
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok("Profile updated", meService.updateProfile(principal, req)));
     }
 }

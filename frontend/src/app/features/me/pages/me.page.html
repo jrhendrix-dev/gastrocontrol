@@ -1,0 +1,81 @@
+<div class="mx-auto max-w-3xl px-4 py-8">
+  <h1 class="text-2xl font-semibold text-center">Mi perfil</h1>
+  <p class="mt-1 text-sm opacity-75 text-center">Actualiza tu información básica.</p>
+
+  <div *ngIf="loading()" class="mt-6 rounded-lg border p-4">
+    Cargando...
+  </div>
+
+  <div *ngIf="!loading()" class="mt-6 rounded-xl border bg-white p-6 shadow-sm">
+
+    <div *ngIf="formError()" class="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm">
+      {{ formError() }}
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" class="grid gap-4">
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Email</label>
+        <input class="w-full rounded-md border px-3 py-2" [value]="me()?.email ?? ''" disabled />
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label class="mb-1 block text-sm font-medium">Nombre</label>
+          <input class="w-full rounded-md border px-3 py-2" type="text" formControlName="firstName" />
+          <p *ngIf="fieldErrors()['firstName']" class="mt-1 text-xs text-red-700">
+            {{ fieldErrors()['firstName'] }}
+          </p>
+          <p *ngIf="form.controls.firstName.touched && form.controls.firstName.hasError('maxlength')"
+             class="mt-1 text-xs text-red-700">
+            Máximo 80 caracteres.
+          </p>
+        </div>
+
+        <div>
+          <label class="mb-1 block text-sm font-medium">Apellidos</label>
+          <input class="w-full rounded-md border px-3 py-2" type="text" formControlName="lastName" />
+          <p *ngIf="fieldErrors()['lastName']" class="mt-1 text-xs text-red-700">
+            {{ fieldErrors()['lastName'] }}
+          </p>
+          <p *ngIf="form.controls.lastName.touched && form.controls.lastName.hasError('maxlength')"
+             class="mt-1 text-xs text-red-700">
+            Máximo 120 caracteres.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Teléfono</label>
+        <input class="w-full rounded-md border px-3 py-2" type="text" formControlName="phone" />
+        <p *ngIf="fieldErrors()['phone']" class="mt-1 text-xs text-red-700">
+          {{ fieldErrors()['phone'] }}
+        </p>
+        <p *ngIf="form.controls.phone.touched && form.controls.phone.hasError('maxlength')"
+           class="mt-1 text-xs text-red-700">
+          Máximo 30 caracteres.
+        </p>
+      </div>
+
+      <div class="mt-2 flex items-center gap-3">
+        <button
+          type="submit"
+          class="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          [disabled]="saving() || form.pristine"
+        >
+          {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+
+        <button
+          type="button"
+          class="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+          (click)="load()"
+          [disabled]="saving()"
+        >
+          Recargar
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

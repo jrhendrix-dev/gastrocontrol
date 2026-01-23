@@ -19,9 +19,15 @@ export type RefreshResponse = {
 };
 
 export type MeResponse = {
-  id: string | number;
+  id: number;
   email: string;
-  firstName?: string;
-  lastName?: string;
-  roles: string[];
+  role: 'ADMIN' | 'MANAGER' | 'STAFF' | 'CUSTOMER' | string;
+  active: boolean;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  createdAt: string;
+  lastLoginAt: string | null;
 };
+
+

@@ -11,6 +11,12 @@ import {
 } from './auth.types';
 import { TokenStore } from './token-store.service';
 
+export type UpdateProfileRequest = {
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+};
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
@@ -63,8 +69,11 @@ export class AuthService {
 
   roles(): string[] {
     const me = this._me();
-    return Array.isArray(me?.roles) ? me!.roles : [];
+    if (!me?.role) return [];
+    const r = me.role.startsWith('ROLE_') ? me.role : `ROLE_${me.role}`;
+    return [r];
   }
+
 
   email(): string {
     return this._me()?.email ?? '';
@@ -127,5 +136,14 @@ export class AuthService {
   clearAuthLocal() {
     this.clearAccessToken();
     this._me.set(null);
+  }
+
+  updateProfile(req: UpdateProfileRequest) {
+    return this.http
+      .put<ApiResponse<MeResponse>>(`${this.API}/api/me/profile`, req)
+      .pipe(
+        map(res => res.data),
+        tap((u) => this._me.set(u)), // <-- THIS is step 5: navbar updates instantly
+      );
   }
 }
