@@ -59,7 +59,7 @@ public class ChangeOrderStatusService {
 
         order.setStatus(newStatus);
 
-        if (newStatus == OrderStatus.SERVED || newStatus == OrderStatus.CANCELLED) {
+        if (newStatus == OrderStatus.FINISHED || newStatus == OrderStatus.CANCELLED) {
             order.setClosedAt(Instant.now());
         } else {
             // optional: if you want reopening READY -> etc. to always ensure closedAt is null
@@ -90,9 +90,7 @@ public class ChangeOrderStatusService {
     /**
      * Allowed next statuses for a given current status.
      *
-     * <p>Note: {@code DRAFT} is a payment-gated state used by the customer checkout flow.
-     * Staff cannot move it into kitchen states; only cancellation is allowed from staff tooling.
-     * The Stripe webhook is responsible for transitioning {@code DRAFT -> PENDING}.</p>
+     * <p>Note: {@code DRAFT} is a staff POS "open ticket" state. Staff can submit it to the kitchen ({@code DRAFT -> PENDING}) or cancel it.</p>
      */
     private Set<OrderStatus> allowedNextStatuses(OrderStatus from) {
         return switch (from) {
@@ -101,7 +99,8 @@ public class ChangeOrderStatusService {
             case PENDING -> EnumSet.of(OrderStatus.IN_PREPARATION, OrderStatus.CANCELLED);
             case IN_PREPARATION -> EnumSet.of(OrderStatus.READY, OrderStatus.CANCELLED);
             case READY -> EnumSet.of(OrderStatus.SERVED);
-            case SERVED, CANCELLED -> EnumSet.noneOf(OrderStatus.class);
+            case SERVED -> EnumSet.of(OrderStatus.FINISHED);
+            case FINISHED, CANCELLED -> EnumSet.noneOf(OrderStatus.class);
         };
     }
 }

@@ -109,6 +109,7 @@ public class OrderJpaEntity {
     // -------- Domain-ish helpers --------
 
     public void addItem(OrderItemJpaEntity item) {
+        if (item == null) return;
         items.add(item);
         item.setOrder(this);
     }

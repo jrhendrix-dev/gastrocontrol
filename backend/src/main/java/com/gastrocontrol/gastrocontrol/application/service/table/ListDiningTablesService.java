@@ -52,7 +52,8 @@ public class ListDiningTablesService {
                     OrderStatus.DRAFT,
                     OrderStatus.PENDING,
                     OrderStatus.IN_PREPARATION,
-                    OrderStatus.READY
+                    OrderStatus.READY,
+                    OrderStatus.SERVED
             );
 
             activeByTableId = orderRepository

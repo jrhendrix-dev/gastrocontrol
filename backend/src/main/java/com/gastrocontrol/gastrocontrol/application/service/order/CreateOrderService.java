@@ -1,6 +1,7 @@
 // src/main/java/com/gastrocontrol/gastrocontrol/service/order/CreateOrderUseCase.java
 package com.gastrocontrol.gastrocontrol.application.service.order;
 
+import com.gastrocontrol.gastrocontrol.common.exception.BusinessRuleViolationException;
 import com.gastrocontrol.gastrocontrol.common.exception.NotFoundException;
 import com.gastrocontrol.gastrocontrol.common.exception.ValidationException;
 import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
@@ -19,6 +20,7 @@ import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.Pro
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -73,6 +75,23 @@ public class CreateOrderService {
             }
             table = diningTableRepository.findById(command.getTableId())
                     .orElseThrow(() -> new NotFoundException("Dining table not found: " + command.getTableId()));
+
+            // POS rule: only open tables can be assigned.
+            // A table is considered "occupied" if it has any active order.
+            var activeStatuses = EnumSet.of(
+                    OrderStatus.DRAFT,
+                    OrderStatus.PENDING,
+                    OrderStatus.IN_PREPARATION,
+                    OrderStatus.READY,
+                    OrderStatus.SERVED
+            );
+
+            if (orderRepository.existsByTypeAndDiningTable_IdAndStatusIn(OrderType.DINE_IN, table.getId(), activeStatuses)) {
+                throw new BusinessRuleViolationException(Map.of(
+                        "tableId", "Table already has an active order",
+                        "message", "Cannot create a new order: table is already occupied"
+                ));
+            }
         }
 
         if (type == OrderType.DELIVERY) {

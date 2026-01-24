@@ -65,8 +65,13 @@ public class OrderResponse {
     // ---------- Nested DTO ----------
 
     public static class OrderItemResponse {
-        /** Database id for this order item (used for updates/removals). */
+
+        /**
+         * Primary key of the order line item (order_items.id).
+         * This is not the product id; it identifies the specific line within the order.
+         */
         private Long id;
+
         private Long productId;
         private String name;
         private int quantity;

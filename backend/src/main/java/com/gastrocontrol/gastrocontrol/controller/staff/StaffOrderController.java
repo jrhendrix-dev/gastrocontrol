@@ -251,12 +251,13 @@ public class StaffOrderController {
     ) {
         Pageable pageable = toPageable(page, size, sort);
 
-        // Active = NOT SERVED, NOT CANCELLED (your current enum)
+        // Active tickets for POS/table occupancy. FINISHED and CANCELLED are not active.
         List<OrderStatus> activeStatuses = List.of(
                 OrderStatus.DRAFT,
                 OrderStatus.PENDING,
                 OrderStatus.IN_PREPARATION,
-                OrderStatus.READY
+                OrderStatus.READY,
+                OrderStatus.SERVED
         );
 
         ListOrdersQuery q = new ListOrdersQuery(activeStatuses, type, createdFrom, createdTo, tableId);

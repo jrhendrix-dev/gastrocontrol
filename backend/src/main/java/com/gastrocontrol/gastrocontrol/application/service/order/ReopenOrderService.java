@@ -38,10 +38,10 @@ public class ReopenOrderService {
 
         OrderStatus from = order.getStatus();
 
-        if (!Set.of(OrderStatus.READY, OrderStatus.SERVED, OrderStatus.CANCELLED).contains(from)) {
+        if (!Set.of(OrderStatus.READY, OrderStatus.SERVED, OrderStatus.FINISHED, OrderStatus.CANCELLED).contains(from)) {
             throw new BusinessRuleViolationException(Map.of(
                     "orderStatus",
-                    "Reopen is only allowed from READY, SERVED, or CANCELLED (current: " + from + ")",
+                    "Reopen is only allowed from READY, SERVED, FINISHED, or CANCELLED (current: " + from + ")",
                     "orderId",
                     String.valueOf(order.getId())
             ));
