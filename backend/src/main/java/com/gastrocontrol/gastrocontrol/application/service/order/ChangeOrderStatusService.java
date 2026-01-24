@@ -90,13 +90,13 @@ public class ChangeOrderStatusService {
     /**
      * Allowed next statuses for a given current status.
      *
-     * <p>Note: {@code PENDING_PAYMENT} is a payment-gated state used by the customer checkout flow.
+     * <p>Note: {@code DRAFT} is a payment-gated state used by the customer checkout flow.
      * Staff cannot move it into kitchen states; only cancellation is allowed from staff tooling.
-     * The Stripe webhook is responsible for transitioning {@code PENDING_PAYMENT -> PENDING}.</p>
+     * The Stripe webhook is responsible for transitioning {@code DRAFT -> PENDING}.</p>
      */
     private Set<OrderStatus> allowedNextStatuses(OrderStatus from) {
         return switch (from) {
-            case PENDING_PAYMENT -> EnumSet.of(OrderStatus.CANCELLED);
+            case DRAFT -> EnumSet.of(OrderStatus.PENDING, OrderStatus.CANCELLED);
 
             case PENDING -> EnumSet.of(OrderStatus.IN_PREPARATION, OrderStatus.CANCELLED);
             case IN_PREPARATION -> EnumSet.of(OrderStatus.READY, OrderStatus.CANCELLED);

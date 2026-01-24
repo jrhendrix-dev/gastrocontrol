@@ -1,18 +1,24 @@
 // src/main/java/com/gastrocontrol/gastrocontrol/controller/staff/StaffOrderController.java
 package com.gastrocontrol.gastrocontrol.controller.staff;
 
-import com.gastrocontrol.gastrocontrol.application.service.order.*;
 import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
 import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.order.OrderDto;
 import com.gastrocontrol.gastrocontrol.dto.staff.ChangeOrderStatusRequest;
+import com.gastrocontrol.gastrocontrol.dto.staff.AddOrderItemRequest;
+import com.gastrocontrol.gastrocontrol.dto.staff.UpdateOrderItemRequest;
+import com.gastrocontrol.gastrocontrol.dto.staff.CreateDraftOrderRequest;
 import com.gastrocontrol.gastrocontrol.dto.staff.CreateOrderRequest;
 import com.gastrocontrol.gastrocontrol.dto.staff.OrderResponse;
 import com.gastrocontrol.gastrocontrol.dto.staff.ReopenOrderRequest;
+import com.gastrocontrol.gastrocontrol.application.service.order.*;
 import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.common.PagedResponse;
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderType;
+import com.gastrocontrol.gastrocontrol.application.service.order.GetOrderService;
+import com.gastrocontrol.gastrocontrol.application.service.order.ListOrdersQuery;
+import com.gastrocontrol.gastrocontrol.application.service.order.ListOrdersService;
 
 
 import jakarta.validation.Valid;
@@ -38,18 +44,35 @@ public class StaffOrderController {
     private final ReopenOrderService reopenOrderService;
     private final GetOrderService getOrderService;
     private final ListOrdersService listOrdersService;
+    private final CreateDraftOrderService createDraftOrderService;
+    private final AddOrderItemService addOrderItemService;
+    private final UpdateOrderItemQuantityService updateOrderItemQuantityService;
+    private final RemoveOrderItemService removeOrderItemService;
+    private final SubmitOrderService submitOrderService;
 
 
     public StaffOrderController(
             CreateOrderService createOrderService,
             ChangeOrderStatusService changeOrderStatusService,
-            ReopenOrderService reopenOrderService, GetOrderService getOrderService, ListOrdersService listOrdersService
+            ReopenOrderService reopenOrderService,
+            GetOrderService getOrderService,
+            ListOrdersService listOrdersService,
+            CreateDraftOrderService createDraftOrderService,
+            AddOrderItemService addOrderItemService,
+            UpdateOrderItemQuantityService updateOrderItemQuantityService,
+            RemoveOrderItemService removeOrderItemService,
+            SubmitOrderService submitOrderService
     ) {
         this.createOrderService = createOrderService;
         this.changeOrderStatusService = changeOrderStatusService;
         this.reopenOrderService = reopenOrderService;
         this.getOrderService = getOrderService;
         this.listOrdersService = listOrdersService;
+        this.createDraftOrderService = createDraftOrderService;
+        this.addOrderItemService = addOrderItemService;
+        this.updateOrderItemQuantityService = updateOrderItemQuantityService;
+        this.removeOrderItemService = removeOrderItemService;
+        this.submitOrderService = submitOrderService;
     }
 
     @PostMapping
@@ -91,24 +114,67 @@ public class StaffOrderController {
 
         CreateOrderResult result = createOrderService.handle(command);
 
-        OrderResponse response = new OrderResponse();
-        response.setId(result.getOrderId());
-        response.setType(result.getType());
-        response.setTableId(result.getTableId());
-        response.setTotalCents(result.getTotalCents());
-        response.setStatus(result.getStatus());
-        response.setDelivery(result.getDelivery());
-        response.setPickup(result.getPickup());
-        response.setItems(result.getItems().stream().map(i -> {
-            OrderResponse.OrderItemResponse dto = new OrderResponse.OrderItemResponse();
-            dto.setProductId(i.getProductId());
-            dto.setName(i.getName());
-            dto.setQuantity(i.getQuantity());
-            dto.setUnitPriceCents(i.getUnitPriceCents());
-            return dto;
-        }).collect(Collectors.toList()));
+        // Return the hydrated order so the response includes orderItem ids (needed for item update/delete).
+        return ResponseEntity.status(HttpStatus.CREATED).body(getOrderService.handle(result.getOrderId()));
+    }
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    /**
+     * Opens a POS ticket (draft order) that can be incrementally modified before being submitted.
+     */
+    @PostMapping("/drafts")
+    public ResponseEntity<OrderResponse> createDraft(@Valid @RequestBody CreateDraftOrderRequest request) {
+        CreateDraftOrderResult result = createDraftOrderService.handle(
+                new CreateDraftOrderCommand(request.getType(), request.getTableId())
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(getOrderService.handle(result.getOrderId()));
+    }
+
+    /**
+     * Adds an item to an existing order.
+     */
+    @PostMapping("/{orderId}/items")
+    public ResponseEntity<OrderResponse> addItem(
+            @PathVariable Long orderId,
+            @Valid @RequestBody AddOrderItemRequest request
+    ) {
+        return ResponseEntity.ok(addOrderItemService.handle(
+                new AddOrderItemCommand(orderId, request.getProductId(), request.getQuantity())
+        ));
+    }
+
+    /**
+     * Changes the quantity of an existing order item.
+     */
+    @PatchMapping("/{orderId}/items/{itemId}")
+    public ResponseEntity<OrderResponse> updateItemQuantity(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId,
+            @Valid @RequestBody UpdateOrderItemRequest request
+    ) {
+        return ResponseEntity.ok(updateOrderItemQuantityService.handle(
+                new UpdateOrderItemQuantityCommand(orderId, itemId, request.getQuantity())
+        ));
+    }
+
+    /**
+     * Removes an item from an existing order.
+     */
+    @DeleteMapping("/{orderId}/items/{itemId}")
+    public ResponseEntity<OrderResponse> removeItem(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId
+    ) {
+        return ResponseEntity.ok(removeOrderItemService.handle(
+                new RemoveOrderItemCommand(orderId, itemId)
+        ));
+    }
+
+    /**
+     * Sends a draft ticket to the kitchen (DRAFT -> PENDING).
+     */
+    @PostMapping("/{orderId}/actions/submit")
+    public ResponseEntity<OrderResponse> submit(@PathVariable Long orderId) {
+        return ResponseEntity.ok(submitOrderService.handle(orderId));
     }
 
 
@@ -158,6 +224,7 @@ public class StaffOrderController {
     public ResponseEntity<PagedResponse<OrderResponse>> listOrders(
             @RequestParam(required = false) String status, // e.g. "PENDING,IN_PREPARATION"
             @RequestParam(required = false) OrderType type,
+            @RequestParam(required = false) Long tableId,
             @RequestParam(required = false) Instant createdFrom,
             @RequestParam(required = false) Instant createdTo,
             @RequestParam(defaultValue = "0") int page,
@@ -167,7 +234,7 @@ public class StaffOrderController {
         Pageable pageable = toPageable(page, size, sort);
 
         List<OrderStatus> statuses = parseStatuses(status);
-        ListOrdersQuery q = new ListOrdersQuery(statuses, type, createdFrom, createdTo);
+        ListOrdersQuery q = new ListOrdersQuery(statuses, type, createdFrom, createdTo, tableId);
 
         return ResponseEntity.ok(listOrdersService.handle(q, pageable));
     }
@@ -175,6 +242,7 @@ public class StaffOrderController {
     @GetMapping("/active")
     public ResponseEntity<PagedResponse<OrderResponse>> listActiveOrders(
             @RequestParam(required = false) OrderType type,
+            @RequestParam(required = false) Long tableId,
             @RequestParam(required = false) Instant createdFrom,
             @RequestParam(required = false) Instant createdTo,
             @RequestParam(defaultValue = "0") int page,
@@ -185,12 +253,13 @@ public class StaffOrderController {
 
         // Active = NOT SERVED, NOT CANCELLED (your current enum)
         List<OrderStatus> activeStatuses = List.of(
+                OrderStatus.DRAFT,
                 OrderStatus.PENDING,
                 OrderStatus.IN_PREPARATION,
                 OrderStatus.READY
         );
 
-        ListOrdersQuery q = new ListOrdersQuery(activeStatuses, type, createdFrom, createdTo);
+        ListOrdersQuery q = new ListOrdersQuery(activeStatuses, type, createdFrom, createdTo, tableId);
 
         return ResponseEntity.ok(listOrdersService.handle(q, pageable));
     }

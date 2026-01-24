@@ -83,7 +83,7 @@ public class StartCustomerCheckoutService {
                 req.getItems().stream()
                         .map(i -> new CreateOrderCommand.CreateOrderItem(i.getProductId(), i.getQuantity()))
                         .collect(Collectors.toList()),
-                OrderStatus.PENDING_PAYMENT
+                OrderStatus.DRAFT
         );
 
         var created = createOrderService.handle(cmd);

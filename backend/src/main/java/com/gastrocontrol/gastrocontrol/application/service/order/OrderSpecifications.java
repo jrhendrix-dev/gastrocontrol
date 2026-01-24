@@ -22,6 +22,7 @@ public final class OrderSpecifications {
         OrderType type = q.getType();
         Instant from = q.getCreatedFrom();
         Instant to = q.getCreatedTo();
+        Long tableId = q.getTableId();
 
         if (statuses != null && !statuses.isEmpty()) {
             spec = spec.and((root, query, cb) -> root.get("status").in(statuses));
@@ -37,6 +38,10 @@ public final class OrderSpecifications {
 
         if (to != null) {
             spec = spec.and((root, query, cb) -> cb.lessThan(root.get("createdAt"), to));
+        }
+
+        if (tableId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("diningTable").get("id"), tableId));
         }
 
         return spec;

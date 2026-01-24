@@ -112,7 +112,7 @@ public class ReconcilePaymentService {
             payment.setPaymentIntentId(session.paymentIntentId());
         }
 
-        if (order.getStatus() == OrderStatus.PENDING_PAYMENT) {
+        if (order.getStatus() == OrderStatus.DRAFT) {
             order.setStatus(OrderStatus.PENDING);
         }
 

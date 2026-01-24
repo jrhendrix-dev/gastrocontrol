@@ -53,25 +53,13 @@ public final class StaffOrderMapper {
 
         r.setItems(order.getItems().stream().map(i -> {
             OrderResponse.OrderItemResponse item = new OrderResponse.OrderItemResponse();
+            item.setId(i.getId());
             item.setProductId(i.getProduct().getId());
             item.setName(i.getProduct().getName());
             item.setQuantity(i.getQuantity());
             item.setUnitPriceCents(i.getUnitPriceCents());
             return item;
         }).collect(Collectors.toList()));
-
-        var payment = order.getPayment();
-        if (payment != null) {
-            OrderResponse.PaymentSummary ps = new OrderResponse.PaymentSummary();
-            ps.setProvider(payment.getProvider());
-            ps.setStatus(payment.getStatus());
-            ps.setAmountCents(payment.getAmountCents());
-            ps.setCurrency(payment.getCurrency());
-            ps.setCheckoutSessionId(payment.getCheckoutSessionId());
-            ps.setPaymentIntentId(payment.getPaymentIntentId());
-            ps.setUpdatedAt(payment.getUpdatedAt()); // add getter if you want, or omit
-            r.setPayment(ps);
-        }
 
         return r;
     }

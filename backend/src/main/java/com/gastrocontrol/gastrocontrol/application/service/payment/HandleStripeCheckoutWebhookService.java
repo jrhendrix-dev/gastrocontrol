@@ -124,7 +124,7 @@ public class HandleStripeCheckoutWebhookService {
 
         // Flip order status only if it is still waiting for payment
         OrderStatus before = order.getStatus();
-        if (before == OrderStatus.PENDING_PAYMENT) {
+        if (before == OrderStatus.DRAFT) {
             order.setStatus(OrderStatus.PENDING);
         }
         orderRepository.save(order);

@@ -39,4 +39,10 @@ public class OrderItemJpaEntity {
     public int getUnitPriceCents() { return unitPriceCents; }
 
     public void setOrder(OrderJpaEntity order) { this.order = order; }
+
+    /**
+     * Updates the quantity for this order item.
+     * Validation (e.g., positive quantities) should be handled in the use case layer.
+     */
+    public void setQuantity(int quantity) { this.quantity = quantity; }
 }

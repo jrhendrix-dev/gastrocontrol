@@ -79,9 +79,6 @@ public class OrderJpaEntity {
     @Column(name = "pickup_notes", length = 500)
     private String pickupNotes;
 
-    //payment
-    @OneToOne(mappedBy = "order", fetch = FetchType.LAZY)
-    private PaymentJpaEntity payment;
 
     public OrderJpaEntity() {}
 
@@ -114,6 +111,18 @@ public class OrderJpaEntity {
     public void addItem(OrderItemJpaEntity item) {
         items.add(item);
         item.setOrder(this);
+    }
+
+    /**
+     * Removes an item from this order.
+     *
+     * <p>Because the owning side of the relationship is {@code OrderItemJpaEntity.order},
+     * we must null it out so JPA can correctly apply orphan removal.</p>
+     */
+    public void removeItem(OrderItemJpaEntity item) {
+        if (item == null) return;
+        items.remove(item);
+        item.setOrder(null);
     }
 
     /** Convenience if you want the entity to own the invariant. */
@@ -175,9 +184,5 @@ public class OrderJpaEntity {
 
     public String getPickupNotes() { return pickupNotes; }
     public void setPickupNotes(String pickupNotes) { this.pickupNotes = pickupNotes; }
-
-    // in OrderJpaEntity
-    public PaymentJpaEntity getPayment() { return payment; }
-
 
 }

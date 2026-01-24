@@ -62,8 +62,8 @@ public class ResumeCheckoutService {
         }
 
         // Ensure order is in pending payment state (or keep as-is if you prefer)
-        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
-            order.setStatus(OrderStatus.PENDING_PAYMENT);
+        if (order.getStatus() != OrderStatus.DRAFT) {
+            order.setStatus(OrderStatus.DRAFT);
         }
 
         Map<String, String> metadata = new LinkedHashMap<>();
