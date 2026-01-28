@@ -1,0 +1,297 @@
+<!-- src/app/.../staff-pos.page.html -->
+<div class="mx-auto max-w-6xl p-4">
+  <!-- Header -->
+  <div class="mb-4 flex items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">POS</h1>
+      <p class="text-sm text-black/60">Abrir mesa → añadir productos → enviar a cocina</p>
+    </div>
+
+    <button
+      class="btn btn-outline"
+      (click)="refreshTables()"
+      [disabled]="loadingTables()"
+      type="button"
+    >
+      {{ loadingTables() ? 'Cargando...' : 'Refrescar' }}
+    </button>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-2">
+    <!-- Tables -->
+    <div class="gc-card p-3">
+      <div class="mb-3 flex items-center gap-2">
+        <input
+          class="gc-input"
+          placeholder="Buscar mesa..."
+          [(ngModel)]="tableQueryValue"
+          (ngModelChange)="onTableQueryChange($event)"
+        />
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <button
+          *ngFor="let t of tables(); trackBy: trackTable"
+          class="gc-tile"
+          [class.gc-tile-occupied]="!!t.activeOrder"
+          [class.gc-tile-selected]="currentTable()?.id === t.id"
+          (click)="selectTable(t)"
+          type="button"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="font-semibold tracking-tight">{{ t.label }}</div>
+
+            <!-- Status chip (only when occupied) -->
+            <ng-container *ngIf="t.activeOrder as ao">
+              <span
+                class="gc-chip"
+                [ngClass]="{
+                  'gc-chip-draft': ao.status === 'DRAFT',
+                  'gc-chip-pending': ao.status === 'PENDING',
+                  'gc-chip-sent': ao.status === 'SENT' || ao.status === 'IN_KITCHEN',
+                  'gc-chip-ready': ao.status === 'READY'
+                }"
+              >
+                {{ ao.status }}
+              </span>
+            </ng-container>
+          </div>
+
+          <ng-container *ngIf="t.activeOrder as ao; else free">
+            <div class="mt-1 text-xs text-black/60">
+              <span class="gc-money">
+                {{ (ao.totalCents / 100) | currency:'EUR':'symbol':'1.2-2' }}
+              </span>
+            </div>
+
+            <div class="mt-1 text-[11px] text-black/45">Ocupada</div>
+          </ng-container>
+
+          <ng-template #free>
+            <div class="mt-1 text-xs text-black/60">Libre</div>
+          </ng-template>
+        </button>
+      </div>
+    </div>
+
+    <!-- Order -->
+    <div class="gc-card p-3">
+      <ng-container *ngIf="currentTable(); else pickTable">
+        <div class="mb-3 flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-xs text-black/60">Mesa</div>
+            <div class="text-lg font-semibold tracking-tight">
+              {{ currentTable()?.label }}
+            </div>
+
+            <div class="mt-1 flex flex-wrap items-center gap-2" *ngIf="order() as o">
+              <span class="text-xs text-black/60">Estado:</span>
+              <span
+                class="gc-chip"
+                [ngClass]="{
+                  'gc-chip-draft': o.status === 'DRAFT',
+                  'gc-chip-pending': o.status === 'PENDING',
+                  'gc-chip-sent': o.status === 'SENT' || o.status === 'IN_KITCHEN',
+                  'gc-chip-ready': o.status === 'READY'
+                }"
+              >
+                {{ o.status }}
+              </span>
+
+              <span class="text-xs text-black/50" *ngIf="order() && !canStartOrEdit()">
+                Bloqueado por estado
+              </span>
+            </div>
+          </div>
+
+          <button
+            class="btn btn-primary"
+            (click)="submitToKitchen()"
+            [disabled]="!order() || !isDraft()"
+            title="Solo DRAFT se envía a cocina"
+            type="button"
+          >
+            Enviar a cocina
+          </button>
+        </div>
+
+        <!-- Error -->
+        <div class="gc-panel p-3 text-sm text-black/70" *ngIf="orderError()">
+          {{ orderError() }}
+        </div>
+
+        <div *ngIf="loadingOrder()" class="py-8 text-sm text-black/60">
+          Cargando pedido...
+        </div>
+
+        <ng-container *ngIf="order() as o">
+          <!-- Lines -->
+          <div class="gc-panel p-3">
+            <div class="mb-2 flex items-center justify-between">
+              <div class="gc-section-title">Líneas</div>
+              <div class="text-xs text-black/50" *ngIf="o.items?.length">
+                {{ o.items.length }} item(s)
+              </div>
+            </div>
+
+            <!-- Scroll area for items -->
+            <div class="max-h-[320px] space-y-2 overflow-auto pr-1">
+              <div
+                *ngFor="let i of o.items; trackBy: trackItem"
+                class="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-white/55 p-3"
+              >
+                <div class="min-w-0">
+                  <div class="truncate font-semibold tracking-tight">{{ i.name }}</div>
+                  <div class="mt-0.5 text-xs text-black/60">
+                    <span class="gc-money">
+                      {{ (i.unitPriceCents / 100) | currency:'EUR':'symbol':'1.2-2' }}
+                    </span>
+                    <span class="text-black/40"> · </span>
+                    <span class="gc-money">x{{ i.quantity }}</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <button
+                    class="btn btn-outline btn-sm btn-icon"
+                    (click)="dec(i.id)"
+                    [disabled]="!canStartOrEdit()"
+                    type="button"
+                    aria-label="Decrementar"
+                  >
+                    -
+                  </button>
+
+                  <div class="w-10 text-center text-sm font-semibold gc-money">
+                    {{ i.quantity }}
+                  </div>
+
+                  <button
+                    class="btn btn-outline btn-sm btn-icon"
+                    (click)="inc(i.id)"
+                    [disabled]="!canStartOrEdit()"
+                    type="button"
+                    aria-label="Incrementar"
+                  >
+                    +
+                  </button>
+
+                  <button
+                    class="btn btn-outline btn-sm btn-icon"
+                    (click)="remove(i.id)"
+                    [disabled]="!canStartOrEdit()"
+                    type="button"
+                    aria-label="Eliminar"
+                    title="Eliminar línea"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div class="py-4 text-sm text-black/55" *ngIf="!o.items || o.items.length === 0">
+                Todavía no hay productos en este ticket.
+              </div>
+            </div>
+
+            <!-- Sticky Total -->
+            <div class="sticky bottom-0 mt-3 rounded-xl border border-black/10 bg-white/70 p-3 backdrop-blur">
+              <div class="flex items-center justify-between text-sm font-semibold tracking-tight">
+                <span>Total</span>
+                <span class="gc-money">
+                  {{ (o.totalCents / 100) | currency:'EUR':'symbol':'1.2-2' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add product -->
+          <div class="mt-3 gc-panel p-3">
+            <div class="mb-2 flex items-center justify-between">
+              <div class="gc-section-title">Añadir producto</div>
+              <div class="text-xs text-black/50" *ngIf="order() && !canStartOrEdit()">Bloqueado por estado</div>
+            </div>
+
+            <input
+              class="gc-input mb-3"
+              placeholder="Buscar producto..."
+              [(ngModel)]="productQueryValue"
+              (ngModelChange)="onProductQueryChange($event)"
+              [disabled]="!canStartOrEdit()"
+            />
+
+            <!-- Step 6: Categories + Products -->
+            <div class="grid gap-3 md:grid-cols-[180px_1fr]">
+              <!-- Categories -->
+              <div class="max-h-56 overflow-auto pr-1">
+                <div class="mb-2 text-xs text-black/50 flex items-center justify-between">
+                  <span>Categorías</span>
+                  <span *ngIf="loadingCategories()" class="text-black/40">Cargando...</span>
+                </div>
+
+                <button
+                  *ngFor="let c of categories(); trackBy: trackCategory"
+                  type="button"
+                  class="mb-2 w-full rounded-xl border border-black/10 bg-white/55 px-3 py-2 text-left text-sm transition hover:bg-white/70"
+                  [class.ring-2]="selectedCategoryId() === c.id"
+                  (click)="selectCategory(c.id)"
+                >
+                  {{ c.name }}
+                </button>
+              </div>
+
+              <!-- Products -->
+              <div class="max-h-56 overflow-auto pr-1">
+                <div class="mb-2 text-xs text-black/50 flex items-center justify-between">
+                  <span>Productos</span>
+                  <span *ngIf="loadingProducts()" class="text-black/40">Cargando...</span>
+                </div>
+
+                <div class="space-y-2">
+                  <button
+                    *ngFor="let p of products(); trackBy: trackProduct"
+                    class="flex w-full items-center justify-between gap-3 rounded-xl border border-black/10 bg-white/55 p-3 text-left transition hover:bg-white/70 active:scale-[0.99]"
+                    (click)="addProduct(p)"
+                    [disabled]="!canStartOrEdit()"
+                    type="button"
+                  >
+                    <div class="min-w-0">
+                      <div class="truncate font-semibold tracking-tight">{{ p.name }}</div>
+                      <div class="mt-0.5 truncate text-xs text-black/60">
+                        {{ p.categoryName || '' }}
+                      </div>
+                    </div>
+
+                    <div class="text-sm font-semibold gc-money">
+                      {{ (p.priceCents / 100) | currency:'EUR':'symbol':'1.2-2' }}
+                    </div>
+                  </button>
+
+                  <div
+                    class="py-3 text-sm text-black/55"
+                    *ngIf="!loadingProducts() && productQuery().trim().length >= 1 && products().length === 0"
+                  >
+                    Sin resultados.
+                  </div>
+
+                  <div
+                    class="py-3 text-sm text-black/50"
+                    *ngIf="!loadingProducts() && productQuery().trim().length === 0 && products().length === 0"
+                  >
+                    Selecciona una categoría o escribe para buscar.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <ng-template #pickTable>
+        <div class="py-12 text-center text-sm text-black/60">
+          Selecciona una mesa para abrir o continuar un ticket.
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</div>

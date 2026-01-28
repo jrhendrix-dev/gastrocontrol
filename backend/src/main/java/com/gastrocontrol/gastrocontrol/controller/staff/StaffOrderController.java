@@ -19,6 +19,7 @@ import com.gastrocontrol.gastrocontrol.domain.enums.OrderType;
 import com.gastrocontrol.gastrocontrol.application.service.order.GetOrderService;
 import com.gastrocontrol.gastrocontrol.application.service.order.ListOrdersQuery;
 import com.gastrocontrol.gastrocontrol.application.service.order.ListOrdersService;
+import com.gastrocontrol.gastrocontrol.application.service.order.CancelOrderService;
 
 
 import jakarta.validation.Valid;
@@ -49,6 +50,7 @@ public class StaffOrderController {
     private final UpdateOrderItemQuantityService updateOrderItemQuantityService;
     private final RemoveOrderItemService removeOrderItemService;
     private final SubmitOrderService submitOrderService;
+    private final CancelOrderService cancelOrderService;
 
 
     public StaffOrderController(
@@ -61,7 +63,7 @@ public class StaffOrderController {
             AddOrderItemService addOrderItemService,
             UpdateOrderItemQuantityService updateOrderItemQuantityService,
             RemoveOrderItemService removeOrderItemService,
-            SubmitOrderService submitOrderService
+            SubmitOrderService submitOrderService, CancelOrderService cancelOrderService
     ) {
         this.createOrderService = createOrderService;
         this.changeOrderStatusService = changeOrderStatusService;
@@ -73,6 +75,7 @@ public class StaffOrderController {
         this.updateOrderItemQuantityService = updateOrderItemQuantityService;
         this.removeOrderItemService = removeOrderItemService;
         this.submitOrderService = submitOrderService;
+        this.cancelOrderService = cancelOrderService;
     }
 
     @PostMapping
@@ -264,6 +267,12 @@ public class StaffOrderController {
 
         return ResponseEntity.ok(listOrdersService.handle(q, pageable));
     }
+
+    @PostMapping("/{orderId}/actions/cancel")
+    public ResponseEntity<OrderResponse> cancel(@PathVariable Long orderId) {
+        return ResponseEntity.ok(cancelOrderService.handle(orderId));
+    }
+
 
     private static Pageable toPageable(int page, int size, String sort) {
         // sort format: "createdAt,desc" or "totalCents,asc"

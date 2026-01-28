@@ -16,6 +16,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface OrderRepository extends JpaRepository<OrderJpaEntity, Long>, JpaSpecificationExecutor<OrderJpaEntity> {
 
@@ -27,6 +28,14 @@ public interface OrderRepository extends JpaRepository<OrderJpaEntity, Long>, Jp
      */
     @EntityGraph(attributePaths = {"items", "items.product", "diningTable"})
     Page<OrderJpaEntity> findAll(Specification<OrderJpaEntity> spec, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"items", "items.product", "diningTable"})
+    Optional<OrderJpaEntity> findTopHydratedByTypeAndDiningTable_IdAndStatusInOrderByCreatedAtDesc(
+            OrderType type,
+            Long diningTableId,
+            Set<OrderStatus> statuses
+    );
+
 
     /**
      * Lightweight projection used for table screens.

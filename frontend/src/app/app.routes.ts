@@ -3,6 +3,7 @@ import { AppShellComponent } from './layout/app-shell.component';
 import { HomePage } from './features/home/home.page';
 import { LoginPage } from './features/auth/login.page';
 import { PlaceholderPage } from './features/placeholder/placeholder.page';
+import { StaffPosPage } from './features/staff/pos/staff-pos.page';
 import { MePage } from './features/me/pages/me.page';
 import {ConfirmEmailChangePage} from '@app/app/features/me/pages/confirm-email-change.page';
 
@@ -23,7 +24,7 @@ export const routes: Routes = [
 
 
       // temporary routes
-      { path: 'staff/pos', component: PlaceholderPage },
+      { path: 'staff/pos', component: StaffPosPage },
       { path: 'menu', component: PlaceholderPage },
     ],
   },
