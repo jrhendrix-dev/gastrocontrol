@@ -12,10 +12,11 @@
     </button>
   </div>
 
-  <div class="grid gap-4 lg:grid-cols-[minmax(360px,420px)_minmax(0,1fr)]">
-    <!-- Tables -->
-    <div class="gc-card p-4 overflow-hidden">
-      <div class="mb-3 flex items-center gap-2">
+  <!-- ✅ FIX: make left column narrower, give right side more space -->
+  <div class="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
+  <!-- Tables -->
+    <div class="gc-card p-4 w-[360px] justify-self-start overflow-hidden">
+    <div class="mb-3 flex items-center gap-2">
         <input
           class="gc-input"
           placeholder="Buscar mesa..."
@@ -24,7 +25,8 @@
         />
       </div>
 
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <!-- ✅ FIX: force 2 tables per row (no sm:grid-cols-3) -->
+      <div class="grid grid-cols-2 gap-3">
         <button
           *ngFor="let t of tables(); trackBy: trackTable"
           class="gc-tile"
@@ -138,7 +140,7 @@
           Cargando pedido...
         </div>
 
-        <!-- ✅ FIX: responsive workspace with real min widths (prevents “crumpling”) -->
+        <!-- Workspace -->
         <div
           class="grid items-start gap-6
                  grid-cols-1
@@ -159,7 +161,6 @@
                   *ngFor="let i of o.items; trackBy: trackItem"
                   class="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-white/55 p-3"
                 >
-                  <!-- ✅ FIX: allow text to wrap instead of being crushed -->
                   <div class="min-w-0 pr-2">
                     <div class="font-semibold tracking-tight break-words">{{ i.name }}</div>
                     <div class="mt-0.5 text-xs text-black/60">
@@ -171,7 +172,6 @@
                     </div>
                   </div>
 
-                  <!-- ✅ FIX: never shrink the button group -->
                   <div class="flex shrink-0 items-center gap-2">
                     <button
                       class="btn btn-outline btn-sm btn-icon"
@@ -233,7 +233,7 @@
             </ng-template>
           </div>
 
-          <!-- Añadir producto (wider) -->
+          <!-- Añadir producto -->
           <div class="gc-card-tiny min-w-0 p-4">
             <div class="mb-3 flex items-center justify-between">
               <div class="gc-section-title text-base">Añadir producto</div>
@@ -241,15 +241,15 @@
             </div>
 
             <input
-              class="gc-input mb-3"
+              class="gc-input mb-3 max-w-sm"
               placeholder="Buscar producto..."
               [(ngModel)]="productQueryValue"
               (ngModelChange)="onProductQueryChange($event)"
               [disabled]="!canStartOrEdit()"
             />
 
-            <div class="grid gap-4 lg:grid-cols-[minmax(180px,0.6fr)_minmax(0,1.4fr)]">
-              <!-- Categories -->
+            <div class="grid gap-4 lg:grid-cols-[minmax(180px,0.6fr)_minmax(320px,360px)]">
+            <!-- Categories -->
               <div class="min-w-0">
                 <div class="mb-2 text-xs font-semibold text-black/50">Categorías</div>
 
@@ -268,7 +268,7 @@
               </div>
 
               <!-- Products -->
-              <div class="min-w-0">
+              <div class="min-w-0 max-w-sm justify-self-start">
                 <div class="mb-2 text-xs font-semibold text-black/50">Productos</div>
 
                 <div class="space-y-3">
