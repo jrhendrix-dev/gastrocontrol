@@ -1,5 +1,5 @@
-<!-- src/app/.../staff-pos.page.html -->
-<div class="mx-auto max-w-6xl p-4">
+<!-- staff-pos.page.html -->
+<div class="mx-auto max-w-7xl p-4">
   <!-- Header -->
   <div class="mb-4 flex items-center justify-between gap-3">
     <div>
@@ -7,19 +7,14 @@
       <p class="text-sm text-black/60">Abrir mesa → añadir productos → enviar a cocina</p>
     </div>
 
-    <button
-      class="btn btn-outline"
-      (click)="refreshTables()"
-      [disabled]="loadingTables()"
-      type="button"
-    >
+    <button class="btn btn-outline" (click)="refreshTables()" [disabled]="loadingTables()" type="button">
       {{ loadingTables() ? 'Cargando...' : 'Refrescar' }}
     </button>
   </div>
 
-  <div class="grid gap-4 md:grid-cols-2">
+  <div class="grid gap-4 lg:grid-cols-[minmax(360px,420px)_minmax(0,1fr)]">
     <!-- Tables -->
-    <div class="gc-card p-3">
+    <div class="gc-card p-4 overflow-hidden">
       <div class="mb-3 flex items-center gap-2">
         <input
           class="gc-input"
@@ -29,7 +24,7 @@
         />
       </div>
 
-      <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <button
           *ngFor="let t of tables(); trackBy: trackTable"
           class="gc-tile"
@@ -41,14 +36,12 @@
           <div class="flex items-start justify-between gap-2">
             <div class="font-semibold tracking-tight">{{ t.label }}</div>
 
-            <!-- Status chip (only when occupied) -->
             <ng-container *ngIf="t.activeOrder as ao">
               <span
                 class="gc-chip"
                 [ngClass]="{
                   'gc-chip-draft': ao.status === 'DRAFT',
                   'gc-chip-pending': ao.status === 'PENDING',
-                  'gc-chip-sent': ao.status === 'SENT' || ao.status === 'IN_KITCHEN',
                   'gc-chip-ready': ao.status === 'READY'
                 }"
               >
@@ -60,10 +53,9 @@
           <ng-container *ngIf="t.activeOrder as ao; else free">
             <div class="mt-1 text-xs text-black/60">
               <span class="gc-money">
-                {{ (ao.totalCents / 100) | currency:'EUR':'symbol':'1.2-2' }}
+                {{ (ao.totalCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}
               </span>
             </div>
-
             <div class="mt-1 text-[11px] text-black/45">Ocupada</div>
           </ng-container>
 
@@ -74,141 +66,177 @@
       </div>
     </div>
 
-    <!-- Order -->
-    <div class="gc-card p-3">
+    <!-- Right side -->
+    <div class="gc-card p-4 overflow-hidden">
       <ng-container *ngIf="currentTable(); else pickTable">
-        <div class="mb-3 flex items-start justify-between gap-3">
+        <!-- Top summary + actions -->
+        <div class="mb-4 flex items-start justify-between gap-3">
           <div class="min-w-0">
             <div class="text-xs text-black/60">Mesa</div>
             <div class="text-lg font-semibold tracking-tight">
               {{ currentTable()?.label }}
             </div>
 
-            <div class="mt-1 flex flex-wrap items-center gap-2" *ngIf="order() as o">
-              <span class="text-xs text-black/60">Estado:</span>
-              <span
-                class="gc-chip"
-                [ngClass]="{
-                  'gc-chip-draft': o.status === 'DRAFT',
-                  'gc-chip-pending': o.status === 'PENDING',
-                  'gc-chip-sent': o.status === 'SENT' || o.status === 'IN_KITCHEN',
-                  'gc-chip-ready': o.status === 'READY'
-                }"
-              >
-                {{ o.status }}
-              </span>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              <ng-container *ngIf="order() as o; else noOrderStatus">
+                <span class="text-xs text-black/60">Estado:</span>
+                <span
+                  class="gc-chip"
+                  [ngClass]="{
+                    'gc-chip-draft': o.status === 'DRAFT',
+                    'gc-chip-pending': o.status === 'PENDING',
+                    'gc-chip-ready': o.status === 'READY'
+                  }"
+                >
+                  {{ o.status }}
+                </span>
 
-              <span class="text-xs text-black/50" *ngIf="order() && !canStartOrEdit()">
-                Bloqueado por estado
-              </span>
+                <span class="text-xs text-black/50" *ngIf="!canStartOrEdit()">Bloqueado por estado</span>
+              </ng-container>
+
+              <ng-template #noOrderStatus>
+                <span class="text-xs text-black/55">Libre · Añade un producto para abrir el ticket</span>
+              </ng-template>
             </div>
           </div>
 
-          <button
-            class="btn btn-primary"
-            (click)="submitToKitchen()"
-            [disabled]="!order() || !isDraft()"
-            title="Solo DRAFT se envía a cocina"
-            type="button"
-          >
-            Enviar a cocina
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              class="btn btn-danger"
+              *ngIf="order() && (isDraft() || isPending())"
+              (click)="cancelOrder()"
+              type="button"
+              title="Cancela el pedido (solo DRAFT o PENDING)"
+            >
+              Cancelar
+            </button>
+
+            <button
+              class="btn btn-primary"
+              (click)="submitToKitchen()"
+              [disabled]="!order() || !isDraft()"
+              [title]="
+                !order()
+                  ? 'Añade un producto para abrir el ticket'
+                  : isDraft()
+                    ? 'Enviar a cocina'
+                    : 'Ya está enviado (PENDING)'
+              "
+              type="button"
+            >
+              Enviar a cocina
+            </button>
+          </div>
         </div>
 
         <!-- Error -->
-        <div class="gc-panel p-3 text-sm text-black/70" *ngIf="orderError()">
+        <div class="gc-panel mb-4 p-3 text-sm text-black/70" *ngIf="orderError()">
           {{ orderError() }}
         </div>
 
-        <div *ngIf="loadingOrder()" class="py-8 text-sm text-black/60">
+        <div *ngIf="loadingOrder()" class="py-6 text-sm text-black/60">
           Cargando pedido...
         </div>
 
-        <ng-container *ngIf="order() as o">
-          <!-- Lines -->
-          <div class="gc-panel p-3">
-            <div class="mb-2 flex items-center justify-between">
-              <div class="gc-section-title">Líneas</div>
-              <div class="text-xs text-black/50" *ngIf="o.items?.length">
-                {{ o.items.length }} item(s)
+        <!-- ✅ FIX: responsive workspace with real min widths (prevents “crumpling”) -->
+        <div
+          class="grid items-start gap-6
+                 grid-cols-1
+                 2xl:grid-cols-[minmax(360px,1fr)_minmax(520px,1.7fr)]"
+        >
+          <!-- Líneas -->
+          <div class="gc-card-tiny min-w-0 p-4">
+            <div class="mb-3 flex items-center justify-between">
+              <div class="gc-section-title text-base">Líneas</div>
+              <div class="text-xs text-black/50" *ngIf="order() as o">
+                {{ o.items?.length || 0 }} item(s)
               </div>
             </div>
 
-            <!-- Scroll area for items -->
-            <div class="max-h-[320px] space-y-2 overflow-auto pr-1">
-              <div
-                *ngFor="let i of o.items; trackBy: trackItem"
-                class="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-white/55 p-3"
-              >
-                <div class="min-w-0">
-                  <div class="truncate font-semibold tracking-tight">{{ i.name }}</div>
-                  <div class="mt-0.5 text-xs text-black/60">
-                    <span class="gc-money">
-                      {{ (i.unitPriceCents / 100) | currency:'EUR':'symbol':'1.2-2' }}
-                    </span>
-                    <span class="text-black/40"> · </span>
-                    <span class="gc-money">x{{ i.quantity }}</span>
+            <ng-container *ngIf="order() as o; else noOrderLines">
+              <div class="space-y-3">
+                <div
+                  *ngFor="let i of o.items; trackBy: trackItem"
+                  class="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-white/55 p-3"
+                >
+                  <!-- ✅ FIX: allow text to wrap instead of being crushed -->
+                  <div class="min-w-0 pr-2">
+                    <div class="font-semibold tracking-tight break-words">{{ i.name }}</div>
+                    <div class="mt-0.5 text-xs text-black/60">
+                      <span class="gc-money">
+                        {{ (i.unitPriceCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}
+                      </span>
+                      <span class="text-black/40"> · </span>
+                      <span class="gc-money">x{{ i.quantity }}</span>
+                    </div>
+                  </div>
+
+                  <!-- ✅ FIX: never shrink the button group -->
+                  <div class="flex shrink-0 items-center gap-2">
+                    <button
+                      class="btn btn-outline btn-sm btn-icon"
+                      (click)="dec(i.id)"
+                      [disabled]="!canStartOrEdit()"
+                      type="button"
+                      aria-label="Decrementar"
+                    >
+                      -
+                    </button>
+
+                    <div class="w-10 text-center text-sm font-semibold gc-money">
+                      {{ i.quantity }}
+                    </div>
+
+                    <button
+                      class="btn btn-outline btn-sm btn-icon"
+                      (click)="inc(i.id)"
+                      [disabled]="!canStartOrEdit()"
+                      type="button"
+                      aria-label="Incrementar"
+                    >
+                      +
+                    </button>
+
+                    <button
+                      class="btn btn-outline btn-sm btn-icon"
+                      (click)="remove(i.id)"
+                      [disabled]="!canStartOrEdit()"
+                      type="button"
+                      aria-label="Eliminar"
+                      title="Eliminar línea"
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
 
-                <div class="flex items-center gap-2">
-                  <button
-                    class="btn btn-outline btn-sm btn-icon"
-                    (click)="dec(i.id)"
-                    [disabled]="!canStartOrEdit()"
-                    type="button"
-                    aria-label="Decrementar"
-                  >
-                    -
-                  </button>
-
-                  <div class="w-10 text-center text-sm font-semibold gc-money">
-                    {{ i.quantity }}
-                  </div>
-
-                  <button
-                    class="btn btn-outline btn-sm btn-icon"
-                    (click)="inc(i.id)"
-                    [disabled]="!canStartOrEdit()"
-                    type="button"
-                    aria-label="Incrementar"
-                  >
-                    +
-                  </button>
-
-                  <button
-                    class="btn btn-outline btn-sm btn-icon"
-                    (click)="remove(i.id)"
-                    [disabled]="!canStartOrEdit()"
-                    type="button"
-                    aria-label="Eliminar"
-                    title="Eliminar línea"
-                  >
-                    ✕
-                  </button>
+                <div class="py-2 text-sm text-black/55" *ngIf="!o.items || o.items.length === 0">
+                  Todavía no hay productos en este ticket.
                 </div>
               </div>
 
-              <div class="py-4 text-sm text-black/55" *ngIf="!o.items || o.items.length === 0">
-                Todavía no hay productos en este ticket.
+              <div class="mt-4 rounded-xl border border-black/10 bg-white/70 p-3">
+                <div class="flex items-center justify-between text-sm font-semibold tracking-tight">
+                  <span>Total</span>
+                  <span class="gc-money">
+                    {{ (o.totalCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}
+                  </span>
+                </div>
               </div>
-            </div>
+            </ng-container>
 
-            <!-- Sticky Total -->
-            <div class="sticky bottom-0 mt-3 rounded-xl border border-black/10 bg-white/70 p-3 backdrop-blur">
-              <div class="flex items-center justify-between text-sm font-semibold tracking-tight">
-                <span>Total</span>
-                <span class="gc-money">
-                  {{ (o.totalCents / 100) | currency:'EUR':'symbol':'1.2-2' }}
-                </span>
+            <ng-template #noOrderLines>
+              <div class="rounded-xl border border-black/10 bg-white/50 p-4 text-sm text-black/60">
+                Aún no hay ticket abierto para esta mesa.
+                <div class="mt-2 text-xs text-black/50">Añade un producto para abrirlo automáticamente.</div>
               </div>
-            </div>
+            </ng-template>
           </div>
 
-          <!-- Add product -->
-          <div class="mt-3 gc-panel p-3">
-            <div class="mb-2 flex items-center justify-between">
-              <div class="gc-section-title">Añadir producto</div>
+          <!-- Añadir producto (wider) -->
+          <div class="gc-card-tiny min-w-0 p-4">
+            <div class="mb-3 flex items-center justify-between">
+              <div class="gc-section-title text-base">Añadir producto</div>
               <div class="text-xs text-black/50" *ngIf="order() && !canStartOrEdit()">Bloqueado por estado</div>
             </div>
 
@@ -220,34 +248,30 @@
               [disabled]="!canStartOrEdit()"
             />
 
-            <!-- Step 6: Categories + Products -->
-            <div class="grid gap-3 md:grid-cols-[180px_1fr]">
+            <div class="grid gap-4 lg:grid-cols-[minmax(180px,0.6fr)_minmax(0,1.4fr)]">
               <!-- Categories -->
-              <div class="max-h-56 overflow-auto pr-1">
-                <div class="mb-2 text-xs text-black/50 flex items-center justify-between">
-                  <span>Categorías</span>
-                  <span *ngIf="loadingCategories()" class="text-black/40">Cargando...</span>
-                </div>
+              <div class="min-w-0">
+                <div class="mb-2 text-xs font-semibold text-black/50">Categorías</div>
 
-                <button
-                  *ngFor="let c of categories(); trackBy: trackCategory"
-                  type="button"
-                  class="mb-2 w-full rounded-xl border border-black/10 bg-white/55 px-3 py-2 text-left text-sm transition hover:bg-white/70"
-                  [class.ring-2]="selectedCategoryId() === c.id"
-                  (click)="selectCategory(c.id)"
-                >
-                  {{ c.name }}
-                </button>
+                <div class="space-y-2">
+                  <button
+                    *ngFor="let c of categories(); trackBy: trackCategory"
+                    type="button"
+                    class="w-full rounded-xl border border-black/10 bg-white/55 px-3 py-2 text-left text-sm transition hover:bg-white/70"
+                    [ngClass]="selectedCategoryId() === c.id ? 'ring-2 ring-black/20 bg-white/70' : ''"
+                    (click)="selectCategory(c.id)"
+                    [disabled]="!canStartOrEdit()"
+                  >
+                    {{ c.name }}
+                  </button>
+                </div>
               </div>
 
               <!-- Products -->
-              <div class="max-h-56 overflow-auto pr-1">
-                <div class="mb-2 text-xs text-black/50 flex items-center justify-between">
-                  <span>Productos</span>
-                  <span *ngIf="loadingProducts()" class="text-black/40">Cargando...</span>
-                </div>
+              <div class="min-w-0">
+                <div class="mb-2 text-xs font-semibold text-black/50">Productos</div>
 
-                <div class="space-y-2">
+                <div class="space-y-3">
                   <button
                     *ngFor="let p of products(); trackBy: trackProduct"
                     class="flex w-full items-center justify-between gap-3 rounded-xl border border-black/10 bg-white/55 p-3 text-left transition hover:bg-white/70 active:scale-[0.99]"
@@ -257,34 +281,22 @@
                   >
                     <div class="min-w-0">
                       <div class="truncate font-semibold tracking-tight">{{ p.name }}</div>
-                      <div class="mt-0.5 truncate text-xs text-black/60">
-                        {{ p.categoryName || '' }}
-                      </div>
+                      <div class="mt-0.5 truncate text-xs text-black/60">{{ p.categoryName || '' }}</div>
                     </div>
 
                     <div class="text-sm font-semibold gc-money">
-                      {{ (p.priceCents / 100) | currency:'EUR':'symbol':'1.2-2' }}
+                      {{ (p.priceCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}
                     </div>
                   </button>
 
-                  <div
-                    class="py-3 text-sm text-black/55"
-                    *ngIf="!loadingProducts() && productQuery().trim().length >= 1 && products().length === 0"
-                  >
+                  <div class="py-2 text-sm text-black/55" *ngIf="products().length === 0">
                     Sin resultados.
-                  </div>
-
-                  <div
-                    class="py-3 text-sm text-black/50"
-                    *ngIf="!loadingProducts() && productQuery().trim().length === 0 && products().length === 0"
-                  >
-                    Selecciona una categoría o escribe para buscar.
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </ng-container>
+        </div>
       </ng-container>
 
       <ng-template #pickTable>

@@ -73,10 +73,21 @@ body {
   .btn-danger   { @apply bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-600; }
 
   .btn-icon { @apply p-2 aspect-square; }
+  .btn-sm.btn-icon { @apply p-1.5; }
 
   /* Surfaces */
   .gc-card {
     @apply rounded-2xl border border-black/10 bg-white/55 shadow-sm backdrop-blur;
+  }
+
+  /* Inner cards (used inside sections like Líneas / Productos) */
+  .gc-card-inner {
+    @apply rounded-2xl border border-black/10 bg-white/45 shadow-sm;
+  }
+
+  /* Tiny variant (for rows/buttons inside panels) */
+  .gc-card-tiny {
+    @apply rounded-xl border border-black/10 bg-white/55;
   }
 
   .gc-panel {
