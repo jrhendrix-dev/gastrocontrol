@@ -35,6 +35,7 @@ stripe:
   currency: ${STRIPE_CURRENCY:eur}
   checkout-success-url: ${STRIPE_CHECKOUT_SUCCESS_URL:http://localhost:4200/checkout/success?session_id={CHECKOUT_SESSION_ID}}
   checkout-cancel-url: ${STRIPE_CHECKOUT_CANCEL_URL:http://localhost:4200/checkout/cancel?session_id={CHECKOUT_SESSION_ID}}
+  verify-webhook-signature: ${STRIPE_VERIFY_WEBHOOK_SIGNATURE:false}
 
 payments:
   reconcile:

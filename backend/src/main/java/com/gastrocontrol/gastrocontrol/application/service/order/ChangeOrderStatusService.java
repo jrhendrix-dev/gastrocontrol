@@ -6,6 +6,7 @@ import com.gastrocontrol.gastrocontrol.common.exception.ValidationException;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderEventJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderJpaEntity;
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
+import com.gastrocontrol.gastrocontrol.domain.enums.OrderType;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderEventRepository;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderRepository;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,17 @@ public class ChangeOrderStatusService {
         OrderStatus oldStatus = order.getStatus();
         OrderStatus newStatus = command.getNewStatus();
 
+        // ✅ Guardrail: customer checkout orders in DRAFT are "awaiting payment"
+        // Do NOT allow staff to push them into the kitchen pipeline.
+        if (oldStatus == OrderStatus.DRAFT && newStatus == OrderStatus.PENDING) {
+            if (order.getType() != OrderType.DINE_IN) {
+                throw new BusinessRuleViolationException(Map.of(
+                        "newStatus",
+                        "Cannot move a customer checkout order to PENDING until payment is confirmed"
+                ));
+            }
+        }
+
         if (!isValidTransition(oldStatus, newStatus)) {
             Set<OrderStatus> allowed = allowedNextStatuses(oldStatus);
 
@@ -61,9 +73,6 @@ public class ChangeOrderStatusService {
 
         if (newStatus == OrderStatus.FINISHED || newStatus == OrderStatus.CANCELLED) {
             order.setClosedAt(Instant.now());
-        } else {
-            // optional: if you want reopening READY -> etc. to always ensure closedAt is null
-            // order.setClosedAt(null);
         }
 
         OrderJpaEntity saved = orderRepository.save(order);
@@ -75,8 +84,8 @@ public class ChangeOrderStatusService {
                 newStatus,
                 command.getMessage(),
                 "STAFF",
-                null,  // actorUserId later from auth/JWT
-                null   // reasonCode (optional for normal transitions)
+                null,
+                null
         ));
 
         return new ChangeOrderStatusResult(saved.getId(), oldStatus, newStatus);
@@ -90,7 +99,12 @@ public class ChangeOrderStatusService {
     /**
      * Allowed next statuses for a given current status.
      *
-     * <p>Note: {@code DRAFT} is a staff POS "open ticket" state. Staff can submit it to the kitchen ({@code DRAFT -> PENDING}) or cancel it.</p>
+     * <p>DRAFT has two meanings:
+     * <ul>
+     *   <li>DINE_IN: staff POS ticket before submit</li>
+     *   <li>TAKE_AWAY/DELIVERY: awaiting payment (customer checkout)</li>
+     * </ul>
+     * This service includes an extra guardrail to prevent staff from moving customer checkout drafts into PENDING.</p>
      */
     private Set<OrderStatus> allowedNextStatuses(OrderStatus from) {
         return switch (from) {

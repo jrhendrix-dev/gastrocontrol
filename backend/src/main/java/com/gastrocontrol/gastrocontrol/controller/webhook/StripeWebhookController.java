@@ -62,6 +62,7 @@ public class StripeWebhookController {
 
             return ResponseEntity.ok().build();
         } catch (Exception e) {
+            log.error("Stripe webhook processing failed", e);
             throw new ValidationException(Map.of("stripe", "Webhook processing failed"));
         }
     }

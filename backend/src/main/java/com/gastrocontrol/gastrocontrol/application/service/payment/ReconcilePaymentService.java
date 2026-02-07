@@ -1,4 +1,3 @@
-// src/main/java/com/gastrocontrol/gastrocontrol/application/service/payment/ReconcilePaymentService.java
 package com.gastrocontrol.gastrocontrol.application.service.payment;
 
 import com.gastrocontrol.gastrocontrol.application.port.payment.CheckoutSessionStatusResult;
@@ -48,7 +47,6 @@ public class ReconcilePaymentService {
         var payment = paymentRepository.findByOrder_Id(orderId)
                 .orElseThrow(() -> new NotFoundException("Payment not found for order: " + orderId));
 
-        // If already succeeded locally, nothing to do (idempotent)
         if (payment.getStatus() == PaymentStatus.SUCCEEDED) {
             return new ReconcilePaymentResult(
                     orderId,
@@ -76,11 +74,11 @@ public class ReconcilePaymentService {
         OrderStatus oldOrderStatus = order.getStatus();
 
         if (!paid) {
-            // Still unpaid/processing: keep order as-is, mark payment as requires payment
             payment.setStatus(PaymentStatus.REQUIRES_PAYMENT);
             if (session.paymentIntentId() != null && !session.paymentIntentId().isBlank()) {
                 payment.setPaymentIntentId(session.paymentIntentId());
             }
+            paymentRepository.save(payment); // ✅ persist
 
             orderEventRepository.save(new OrderEventJpaEntity(
                     order,
@@ -106,14 +104,15 @@ public class ReconcilePaymentService {
             );
         }
 
-        // Paid -> flip payment and (if needed) order status
         payment.setStatus(PaymentStatus.SUCCEEDED);
         if (session.paymentIntentId() != null && !session.paymentIntentId().isBlank()) {
             payment.setPaymentIntentId(session.paymentIntentId());
         }
+        paymentRepository.save(payment); // ✅ persist
 
         if (order.getStatus() == OrderStatus.DRAFT) {
             order.setStatus(OrderStatus.PENDING);
+            orderRepository.save(order); // ✅ persist
         }
 
         orderEventRepository.save(new OrderEventJpaEntity(

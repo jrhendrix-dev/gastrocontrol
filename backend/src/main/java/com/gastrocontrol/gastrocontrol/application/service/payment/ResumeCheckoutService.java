@@ -45,7 +45,6 @@ public class ResumeCheckoutService {
         var payment = paymentRepository.findByOrder_Id(orderId)
                 .orElseThrow(() -> new NotFoundException("Payment not found for order: " + orderId));
 
-        // If already paid, nothing to resume
         if (payment.getStatus() == PaymentStatus.SUCCEEDED) {
             return ResumeCheckoutResponse.paid(
                     orderId,
@@ -56,14 +55,14 @@ public class ResumeCheckoutService {
             );
         }
 
-        // Only Stripe for now (guardrail for future providers)
         if (payment.getProvider() != PaymentProvider.STRIPE) {
             throw new IllegalStateException("Resume checkout not supported for provider: " + payment.getProvider());
         }
 
-        // Ensure order is in pending payment state (or keep as-is if you prefer)
-        if (order.getStatus() != OrderStatus.DRAFT) {
+        OrderStatus beforeOrderStatus = order.getStatus();
+        if (beforeOrderStatus != OrderStatus.DRAFT) {
             order.setStatus(OrderStatus.DRAFT);
+            orderRepository.save(order);
         }
 
         Map<String, String> metadata = new LinkedHashMap<>();
@@ -78,15 +77,15 @@ public class ResumeCheckoutService {
                 metadata
         ));
 
-        // Persist the new session as the active one
         payment.setCheckoutSessionId(result.checkoutSessionId());
         payment.setPaymentIntentId(result.paymentIntentId());
         payment.setStatus(PaymentStatus.REQUIRES_PAYMENT);
+        paymentRepository.save(payment);
 
         orderEventRepository.save(new OrderEventJpaEntity(
                 order,
                 "CHECKOUT_RESUMED",
-                order.getStatus(),
+                beforeOrderStatus,
                 order.getStatus(),
                 "Checkout resumed (new Stripe session generated)",
                 "STAFF",

@@ -10,6 +10,7 @@ import com.gastrocontrol.gastrocontrol.dto.customer.CustomerCheckoutRequest;
 import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderEventJpaEntity;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.PaymentJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderEventRepository;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderRepository;
@@ -45,33 +46,46 @@ public class StartCustomerCheckoutService {
 
     @Transactional
     public CustomerCheckoutResult start(CustomerCheckoutRequest req, String currency) {
-        if (req.getType() == null) throw new ValidationException(Map.of("type", "Type is required"));
+
+        if (req.getType() == null) {
+            throw new ValidationException(Map.of("type", "Type is required"));
+        }
 
         if (req.getType() == OrderType.DINE_IN) {
-            throw new ValidationException(Map.of("type", "Customer checkout does not support DINE_IN"));
+            throw new ValidationException(Map.of(
+                    "type",
+                    "Customer checkout does not support DINE_IN"
+            ));
         }
 
         DeliverySnapshotDto delivery = null;
+        PickupSnapshotDto pickup = null;
+
         if (req.getType() == OrderType.DELIVERY) {
-            if (req.getDelivery() == null) throw new ValidationException(Map.of("delivery", "Delivery is required"));
+            if (req.getDelivery() == null) {
+                throw new ValidationException(Map.of("delivery", "Delivery is required"));
+            }
+            var d = req.getDelivery();
             delivery = new DeliverySnapshotDto(
-                    req.getDelivery().getName(),
-                    req.getDelivery().getPhone(),
-                    req.getDelivery().getAddressLine1(),
-                    req.getDelivery().getAddressLine2(),
-                    req.getDelivery().getCity(),
-                    req.getDelivery().getPostalCode(),
-                    req.getDelivery().getNotes()
+                    d.getName(),
+                    d.getPhone(),
+                    d.getAddressLine1(),
+                    d.getAddressLine2(),
+                    d.getCity(),
+                    d.getPostalCode(),
+                    d.getNotes()
             );
         }
 
-        PickupSnapshotDto pickup = null;
         if (req.getType() == OrderType.TAKE_AWAY) {
-            if (req.getPickup() == null) throw new ValidationException(Map.of("pickup", "Pickup is required"));
+            if (req.getPickup() == null) {
+                throw new ValidationException(Map.of("pickup", "Pickup is required"));
+            }
+            var p = req.getPickup();
             pickup = new PickupSnapshotDto(
-                    req.getPickup().getName(),
-                    req.getPickup().getPhone(),
-                    req.getPickup().getNotes()
+                    p.getName(),
+                    p.getPhone(),
+                    p.getNotes()
             );
         }
 
@@ -81,36 +95,45 @@ public class StartCustomerCheckoutService {
                 delivery,
                 pickup,
                 req.getItems().stream()
-                        .map(i -> new CreateOrderCommand.CreateOrderItem(i.getProductId(), i.getQuantity()))
+                        .map(i -> new CreateOrderCommand.CreateOrderItem(
+                                i.getProductId(),
+                                i.getQuantity()
+                        ))
                         .collect(Collectors.toList()),
                 OrderStatus.DRAFT
         );
 
         var created = createOrderService.handle(cmd);
 
-        // Create payment row (idempotency anchor is order_id unique)
-        var order = orderRepository.findById(created.getOrderId())
-                .orElseThrow(() -> new IllegalStateException("Order disappeared after create: " + created.getOrderId()));
+        OrderJpaEntity order = orderRepository.findById(created.getOrderId())
+                .orElseThrow(() ->
+                        new IllegalStateException("Order disappeared after creation")
+                );
 
-        PaymentJpaEntity payment = new PaymentJpaEntity(
-                order,
-                PaymentProvider.STRIPE,
-                PaymentStatus.REQUIRES_PAYMENT,
-                created.getTotalCents(),
-                currency
-        );
-        paymentRepository.save(payment);
+        // 🔐 Idempotent payment creation (ONE per order)
+        PaymentJpaEntity payment = paymentRepository.findByOrder_Id(order.getId())
+                .orElseGet(() -> {
+                    PaymentJpaEntity p = new PaymentJpaEntity(
+                            order,
+                            PaymentProvider.STRIPE,
+                            PaymentStatus.REQUIRES_PAYMENT,
+                            created.getTotalCents(),
+                            currency
+                    );
+                    return paymentRepository.save(p);
+                });
 
         var checkout = paymentGateway.startCheckout(new CheckoutStartCommand(
-                created.getOrderId(),
+                order.getId(),
                 created.getTotalCents(),
                 currency,
-                "GastroControl order #" + created.getOrderId(),
-                Map.of("orderId", String.valueOf(created.getOrderId()))
+                "GastroControl order #" + order.getId(),
+                Map.of("orderId", String.valueOf(order.getId()))
         ));
 
         payment.setCheckoutSessionId(checkout.checkoutSessionId());
         payment.setPaymentIntentId(checkout.paymentIntentId());
+        paymentRepository.save(payment);
 
         orderEventRepository.save(new OrderEventJpaEntity(
                 order,
@@ -123,7 +146,7 @@ public class StartCustomerCheckoutService {
                 null
         ));
 
-        return new CustomerCheckoutResult(created.getOrderId(), checkout.checkoutUrl());
+        return new CustomerCheckoutResult(order.getId(), checkout.checkoutUrl());
     }
 
     public record CustomerCheckoutResult(long orderId, String checkoutUrl) {}
