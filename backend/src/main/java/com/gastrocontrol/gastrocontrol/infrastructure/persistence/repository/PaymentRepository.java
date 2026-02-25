@@ -3,6 +3,8 @@ package com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository;
 import com.gastrocontrol.gastrocontrol.domain.enums.PaymentStatus;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.PaymentJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -18,4 +20,17 @@ public interface PaymentRepository extends JpaRepository<PaymentJpaEntity, Long>
             PaymentStatus status,
             Instant updatedBefore
     );
+
+    interface OrderPaymentStatusProjection {
+        Long getOrderId();
+        PaymentStatus getStatus();
+    }
+
+    @Query("""
+        select p.order.id as orderId, p.status as status
+        from PaymentJpaEntity p
+        where p.order.id in :orderIds
+    """)
+    List<OrderPaymentStatusProjection> findPaymentStatusesByOrderIds(@Param("orderIds") List<Long> orderIds);
+
 }

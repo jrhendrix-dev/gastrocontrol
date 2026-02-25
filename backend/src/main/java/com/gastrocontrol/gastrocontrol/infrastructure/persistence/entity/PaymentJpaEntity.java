@@ -6,6 +6,15 @@ import jakarta.persistence.*;
 
 import java.time.Instant;
 
+/**
+ * Represents a payment attempt or confirmation for an Order.
+ *
+ * Invariants:
+ * - amountCents must be > 0
+ * - currency must not be blank
+ * - provider and status must never be null
+ * - One payment per order (enforced via unique constraint)
+ */
 @Entity
 @Table(
         name = "payments",
@@ -44,6 +53,9 @@ public class PaymentJpaEntity {
     @Column(name = "payment_intent_id", length = 120)
     private String paymentIntentId;
 
+    @Column(name = "manual_reference", length = 120)
+    private String manualReference;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -54,9 +66,23 @@ public class PaymentJpaEntity {
     @Column(name = "version", nullable = false)
     private Integer version = 0;
 
-    protected PaymentJpaEntity() {}
+    protected PaymentJpaEntity() {
+        // JPA only
+    }
 
-    public PaymentJpaEntity(OrderJpaEntity order, PaymentProvider provider, PaymentStatus status, int amountCents, String currency) {
+    public PaymentJpaEntity(
+            OrderJpaEntity order,
+            PaymentProvider provider,
+            PaymentStatus status,
+            int amountCents,
+            String currency
+    ) {
+        if (order == null) throw new IllegalArgumentException("order is required");
+        if (provider == null) throw new IllegalArgumentException("provider is required");
+        if (status == null) throw new IllegalArgumentException("status is required");
+        if (amountCents <= 0) throw new IllegalArgumentException("amountCents must be > 0");
+        if (currency == null || currency.isBlank()) throw new IllegalArgumentException("currency is required");
+
         this.order = order;
         this.provider = provider;
         this.status = status;
@@ -66,6 +92,7 @@ public class PaymentJpaEntity {
 
     @PrePersist
     protected void onCreate() {
+        validateInvariants();
         Instant now = Instant.now();
         if (this.createdAt == null) this.createdAt = now;
         this.updatedAt = now;
@@ -74,22 +101,49 @@ public class PaymentJpaEntity {
 
     @PreUpdate
     protected void onUpdate() {
+        validateInvariants();
         this.updatedAt = Instant.now();
     }
+
+    private void validateInvariants() {
+        if (provider == null) throw new IllegalStateException("provider is required");
+        if (status == null) throw new IllegalStateException("status is required");
+        if (amountCents <= 0) throw new IllegalStateException("amountCents must be > 0");
+        if (currency == null || currency.isBlank()) throw new IllegalStateException("currency is required");
+    }
+
+    // ----------------- Getters -----------------
 
     public Long getId() { return id; }
     public OrderJpaEntity getOrder() { return order; }
     public PaymentProvider getProvider() { return provider; }
     public PaymentStatus getStatus() { return status; }
-    public void setStatus(PaymentStatus status) { this.status = status; }
     public int getAmountCents() { return amountCents; }
     public String getCurrency() { return currency; }
     public String getCheckoutSessionId() { return checkoutSessionId; }
-    public void setCheckoutSessionId(String checkoutSessionId) { this.checkoutSessionId = checkoutSessionId; }
     public String getPaymentIntentId() { return paymentIntentId; }
-    public void setPaymentIntentId(String paymentIntentId) { this.paymentIntentId = paymentIntentId; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public String getManualReference() { return manualReference; }
     public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
 
+    // ----------------- Controlled Mutations -----------------
 
+    public void setStatus(PaymentStatus status) {
+        if (status == null) throw new IllegalArgumentException("status is required");
+        this.status = status;
+    }
+
+    public void setCheckoutSessionId(String checkoutSessionId) {
+        this.checkoutSessionId = checkoutSessionId;
+    }
+
+    public void setPaymentIntentId(String paymentIntentId) {
+        this.paymentIntentId = paymentIntentId;
+    }
+
+    public void setManualReference(String manualReference) {
+        this.manualReference = (manualReference == null || manualReference.isBlank())
+                ? null
+                : manualReference.trim();
+    }
 }

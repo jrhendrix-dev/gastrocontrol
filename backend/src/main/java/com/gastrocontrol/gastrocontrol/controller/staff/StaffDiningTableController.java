@@ -36,19 +36,17 @@ public class StaffDiningTableController {
     @GetMapping
     public ResponseEntity<PagedResponse<DiningTableResponse>> list(
             @RequestParam(required = false) String q,
-            /**
-             * Comma-separated include flags.
-             * Currently supported: activeOrder
-             */
             @RequestParam(required = false) String include,
+            @RequestParam(required = false) Boolean paid,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id,asc") String sort
     ) {
         Pageable pageable = toPageable(page, size, sort);
         boolean includeActiveOrder = include != null && include.contains("activeOrder");
-        return ResponseEntity.ok(listDiningTablesService.handle(q, pageable, includeActiveOrder));
+        return ResponseEntity.ok(listDiningTablesService.handle(q, pageable, includeActiveOrder, paid));
     }
+
 
     @GetMapping("/{id}/active-order")
     public ResponseEntity<OrderResponse> getActiveOrder(@PathVariable Long id) {

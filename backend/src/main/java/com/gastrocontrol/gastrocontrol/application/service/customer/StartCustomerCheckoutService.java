@@ -110,22 +110,21 @@ public class StartCustomerCheckoutService {
                         new IllegalStateException("Order disappeared after creation")
                 );
 
+        int amountCents = created.getTotalCents();
+
         // 🔐 Idempotent payment creation (ONE per order)
         PaymentJpaEntity payment = paymentRepository.findByOrder_Id(order.getId())
-                .orElseGet(() -> {
-                    PaymentJpaEntity p = new PaymentJpaEntity(
-                            order,
-                            PaymentProvider.STRIPE,
-                            PaymentStatus.REQUIRES_PAYMENT,
-                            created.getTotalCents(),
-                            currency
-                    );
-                    return paymentRepository.save(p);
-                });
+                .orElseGet(() -> paymentRepository.save(new PaymentJpaEntity(
+                        order,
+                        PaymentProvider.STRIPE,
+                        PaymentStatus.REQUIRES_PAYMENT,
+                        amountCents,
+                        currency
+                )));
 
         var checkout = paymentGateway.startCheckout(new CheckoutStartCommand(
                 order.getId(),
-                created.getTotalCents(),
+                amountCents,
                 currency,
                 "GastroControl order #" + order.getId(),
                 Map.of("orderId", String.valueOf(order.getId()))

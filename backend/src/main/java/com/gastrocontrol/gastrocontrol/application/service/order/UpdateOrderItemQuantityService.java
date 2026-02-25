@@ -4,31 +4,35 @@ import com.gastrocontrol.gastrocontrol.common.exception.BusinessRuleViolationExc
 import com.gastrocontrol.gastrocontrol.common.exception.NotFoundException;
 import com.gastrocontrol.gastrocontrol.common.exception.ValidationException;
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
+import com.gastrocontrol.gastrocontrol.domain.enums.PaymentStatus;
 import com.gastrocontrol.gastrocontrol.dto.staff.OrderResponse;
-
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderEventJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderItemJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderEventRepository;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderRepository;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.PaymentRepository;
 import com.gastrocontrol.gastrocontrol.mapper.order.StaffOrderMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
-/**
- * Updates an existing order item's quantity.
- */
 @Service
 public class UpdateOrderItemQuantityService {
 
     private final OrderRepository orderRepository;
     private final OrderEventRepository orderEventRepository;
+    private final PaymentRepository paymentRepository;
 
-    public UpdateOrderItemQuantityService(OrderRepository orderRepository, OrderEventRepository orderEventRepository) {
+    public UpdateOrderItemQuantityService(
+            OrderRepository orderRepository,
+            OrderEventRepository orderEventRepository,
+            PaymentRepository paymentRepository
+    ) {
         this.orderRepository = orderRepository;
         this.orderEventRepository = orderEventRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     @Transactional
@@ -70,11 +74,24 @@ public class UpdateOrderItemQuantityService {
         return StaffOrderMapper.toResponse(saved);
     }
 
-    private static void assertEditable(OrderJpaEntity order) {
+    private void assertEditable(OrderJpaEntity order) {
         if (order.getStatus() != OrderStatus.DRAFT && order.getStatus() != OrderStatus.PENDING) {
             throw new BusinessRuleViolationException(Map.of(
                     "status",
                     "Order items can only be modified while status is DRAFT or PENDING"
+            ));
+        }
+
+        PaymentStatus ps = paymentRepository.findByOrder_Id(order.getId())
+                .map(p -> p.getStatus())
+                .orElse(PaymentStatus.REQUIRES_PAYMENT);
+
+        if (ps == PaymentStatus.SUCCEEDED) {
+            throw new BusinessRuleViolationException(Map.of(
+                    "paymentStatus",
+                    "Order is locked because payment is SUCCEEDED. Reopen the order to modify items.",
+                    "orderId",
+                    String.valueOf(order.getId())
             ));
         }
     }

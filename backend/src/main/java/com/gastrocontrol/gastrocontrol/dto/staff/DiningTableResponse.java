@@ -2,6 +2,7 @@
 package com.gastrocontrol.gastrocontrol.dto.staff;
 
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
+import com.gastrocontrol.gastrocontrol.domain.enums.PaymentStatus;
 
 public class DiningTableResponse {
 
@@ -29,6 +30,9 @@ public class DiningTableResponse {
         private OrderStatus status;
         private int totalCents;
 
+        private PaymentStatus paymentStatus;
+        private boolean paid;
+
         public Long getOrderId() { return orderId; }
         public void setOrderId(Long orderId) { this.orderId = orderId; }
 
@@ -37,5 +41,11 @@ public class DiningTableResponse {
 
         public int getTotalCents() { return totalCents; }
         public void setTotalCents(int totalCents) { this.totalCents = totalCents; }
+
+        public PaymentStatus getPaymentStatus() { return paymentStatus; }
+        public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+        public boolean isPaid() { return paid; }
+        public void setPaid(boolean paid) { this.paid = paid; }
     }
 }

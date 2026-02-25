@@ -5,6 +5,9 @@ import com.gastrocontrol.gastrocontrol.application.service.payment.ReconcilePaym
 import com.gastrocontrol.gastrocontrol.application.service.payment.ReconcilePendingPaymentsService;
 import com.gastrocontrol.gastrocontrol.application.service.payment.ResumeCheckoutService;
 import com.gastrocontrol.gastrocontrol.dto.staff.ResumeCheckoutResponse;
+import com.gastrocontrol.gastrocontrol.application.service.payment.ConfirmManualPaymentService;
+import com.gastrocontrol.gastrocontrol.dto.staff.ConfirmManualPaymentRequest;
+import com.gastrocontrol.gastrocontrol.dto.staff.ConfirmManualPaymentResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,16 +18,20 @@ public class StaffPaymentController {
     private final ResumeCheckoutService resumeCheckoutService;
     private final ReconcilePaymentService reconcilePaymentService;
     private final ReconcilePendingPaymentsService reconcilePendingPaymentsService;
+    private final ConfirmManualPaymentService confirmManualPaymentService;
 
     public StaffPaymentController(
             ResumeCheckoutService resumeCheckoutService,
             ReconcilePaymentService reconcilePaymentService,
-            ReconcilePendingPaymentsService reconcilePendingPaymentsService
+            ReconcilePendingPaymentsService reconcilePendingPaymentsService,
+            ConfirmManualPaymentService confirmManualPaymentService
     ) {
         this.resumeCheckoutService = resumeCheckoutService;
         this.reconcilePaymentService = reconcilePaymentService;
         this.reconcilePendingPaymentsService = reconcilePendingPaymentsService;
+        this.confirmManualPaymentService = confirmManualPaymentService;
     }
+
 
     /**
      * Staff action: regenerate / resume a Stripe Checkout session for an order.
@@ -56,6 +63,21 @@ public class StaffPaymentController {
                 reconcilePendingPaymentsService.reconcileStalePending(limit, java.time.Duration.ofSeconds(staleSeconds))
         );
     }
+
+    /**
+     * Staff action: confirm a manual (external) payment for a DINE_IN order.
+     * Creates/updates a Payment row with provider=MANUAL and status=SUCCEEDED.
+     */
+    @PostMapping("/orders/{orderId}/confirm-manual")
+    public ResponseEntity<ConfirmManualPaymentResponse> confirmManual(
+            @PathVariable Long orderId,
+            @RequestBody(required = false) ConfirmManualPaymentRequest body
+    ) {
+        String ref = (body == null) ? null : body.getManualReference();
+        return ResponseEntity.ok(confirmManualPaymentService.handle(orderId, ref));
+    }
+
+
 
 
 }

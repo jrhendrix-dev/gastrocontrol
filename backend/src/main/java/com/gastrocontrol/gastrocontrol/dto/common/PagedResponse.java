@@ -32,6 +32,22 @@ public class PagedResponse<T> {
         return r;
     }
 
+    /**
+     * Use this when you post-filter mapped results but want to preserve the original paging metadata.
+     * Note: totalElements/totalPages remain the original values.
+     */
+    public static <T> PagedResponse<T> from(Page<?> originalPage, List<T> contentOverride) {
+        PagedResponse<T> r = new PagedResponse<>();
+        r.setContent(contentOverride);
+        r.setPage(originalPage.getNumber());
+        r.setSize(originalPage.getSize());
+        r.setTotalElements(originalPage.getTotalElements());
+        r.setTotalPages(originalPage.getTotalPages());
+        r.setFirst(originalPage.isFirst());
+        r.setLast(originalPage.isLast());
+        return r;
+    }
+
     public List<T> getContent() { return content; }
     public void setContent(List<T> content) { this.content = content; }
 

@@ -1,21 +1,25 @@
-// src/main/java/com/gastrocontrol/gastrocontrol/service/order/CreateOrderUseCase.java
+// src/main/java/com/gastrocontrol/gastrocontrol/application/service/order/CreateOrderService.java
 package com.gastrocontrol.gastrocontrol.application.service.order;
 
 import com.gastrocontrol.gastrocontrol.common.exception.BusinessRuleViolationException;
 import com.gastrocontrol.gastrocontrol.common.exception.NotFoundException;
 import com.gastrocontrol.gastrocontrol.common.exception.ValidationException;
+import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
+import com.gastrocontrol.gastrocontrol.domain.enums.OrderType;
+import com.gastrocontrol.gastrocontrol.domain.enums.PaymentProvider;
+import com.gastrocontrol.gastrocontrol.domain.enums.PaymentStatus;
 import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.DiningTableJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderEventJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderItemJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderJpaEntity;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.PaymentJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.ProductJpaEntity;
-import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
-import com.gastrocontrol.gastrocontrol.domain.enums.OrderType;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.DiningTableRepository;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderEventRepository;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderRepository;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.PaymentRepository;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,21 +36,26 @@ import java.util.stream.Collectors;
 @Service
 public class CreateOrderService {
 
+    private static final String DEFAULT_CURRENCY = "eur";
+
     private final OrderRepository orderRepository;
     private final OrderEventRepository orderEventRepository;
     private final DiningTableRepository diningTableRepository;
     private final ProductRepository productRepository;
+    private final PaymentRepository paymentRepository;
 
     public CreateOrderService(
             OrderRepository orderRepository,
             OrderEventRepository orderEventRepository,
             DiningTableRepository diningTableRepository,
-            ProductRepository productRepository
+            ProductRepository productRepository,
+            PaymentRepository paymentRepository
     ) {
         this.orderRepository = orderRepository;
         this.orderEventRepository = orderEventRepository;
         this.diningTableRepository = diningTableRepository;
         this.productRepository = productRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     @Transactional
@@ -105,7 +114,6 @@ public class CreateOrderService {
         OrderStatus initial = command.getInitialStatus() == null ? OrderStatus.PENDING : command.getInitialStatus();
         OrderJpaEntity order = new OrderJpaEntity(type, initial, table);
 
-
         // Apply delivery snapshot (only for DELIVERY)
         if (type == OrderType.DELIVERY) {
             DeliverySnapshotDto d = command.getDelivery();
@@ -163,6 +171,19 @@ public class CreateOrderService {
         order.setTotalCents(totalCents);
 
         OrderJpaEntity saved = orderRepository.save(order);
+
+        // ✅ Fix 2: For DINE_IN, create the "shadow payment row" at order creation time
+        // Idempotent: one payment per order (your schema enforces this too).
+        if (saved.getType() == OrderType.DINE_IN) {
+            paymentRepository.findByOrder_Id(saved.getId())
+                    .orElseGet(() -> paymentRepository.save(new PaymentJpaEntity(
+                            saved,
+                            PaymentProvider.MANUAL,
+                            PaymentStatus.REQUIRES_PAYMENT,
+                            saved.getTotalCents(),
+                            DEFAULT_CURRENCY
+                    )));
+        }
 
         orderEventRepository.save(new OrderEventJpaEntity(
                 saved,
