@@ -1,10 +1,7 @@
 package com.gastrocontrol.gastrocontrol.application.service.order;
 
-import com.gastrocontrol.gastrocontrol.common.exception.BusinessRuleViolationException;
 import com.gastrocontrol.gastrocontrol.common.exception.NotFoundException;
 import com.gastrocontrol.gastrocontrol.common.exception.ValidationException;
-import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
-import com.gastrocontrol.gastrocontrol.domain.enums.PaymentStatus;
 import com.gastrocontrol.gastrocontrol.dto.staff.OrderResponse;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderEventJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderItemJpaEntity;
@@ -12,7 +9,6 @@ import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderJp
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.ProductJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderEventRepository;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderRepository;
-import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.PaymentRepository;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.ProductRepository;
 import com.gastrocontrol.gastrocontrol.mapper.order.StaffOrderMapper;
 import org.springframework.stereotype.Service;
@@ -20,26 +16,51 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
+/**
+ * Use case for adding an item to an existing order.
+ *
+ * <p>Editability is delegated to {@link OrderEditGuard}, which enforces:</p>
+ * <ul>
+ *   <li>Status must be DRAFT or PENDING</li>
+ *   <li>Payment lock (SUCCEEDED) is bypassed only if the order has been reopened</li>
+ * </ul>
+ */
 @Service
 public class AddOrderItemService {
 
     private final OrderRepository orderRepository;
     private final OrderEventRepository orderEventRepository;
     private final ProductRepository productRepository;
-    private final PaymentRepository paymentRepository;
+    private final OrderEditGuard orderEditGuard;
 
+    /**
+     * @param orderRepository      for loading and persisting the order
+     * @param orderEventRepository for the audit trail
+     * @param productRepository    for looking up the product to add
+     * @param orderEditGuard       shared guard for editability checks
+     */
     public AddOrderItemService(
             OrderRepository orderRepository,
             OrderEventRepository orderEventRepository,
             ProductRepository productRepository,
-            PaymentRepository paymentRepository
+            OrderEditGuard orderEditGuard
     ) {
         this.orderRepository = orderRepository;
         this.orderEventRepository = orderEventRepository;
         this.productRepository = productRepository;
-        this.paymentRepository = paymentRepository;
+        this.orderEditGuard = orderEditGuard;
     }
 
+    /**
+     * Adds a product to the order, merging quantity if the product is already present.
+     *
+     * @param command must contain orderId, productId, and quantity &gt; 0
+     * @return the updated order response
+     * @throws ValidationException           if required fields are missing or invalid
+     * @throws NotFoundException             if the order or product does not exist
+     * @throws com.gastrocontrol.gastrocontrol.common.exception.BusinessRuleViolationException
+     *                                       if the order is not in an editable state
+     */
     @Transactional
     public OrderResponse handle(AddOrderItemCommand command) {
         if (command == null) throw new ValidationException(Map.of("command", "Command is required"));
@@ -50,7 +71,8 @@ public class AddOrderItemService {
         OrderJpaEntity order = orderRepository.findHydratedById(command.getOrderId())
                 .orElseThrow(() -> new NotFoundException("Order not found: " + command.getOrderId()));
 
-        assertEditable(order);
+        // Delegates to shared guard — respects the reopened edit window
+        orderEditGuard.assertEditable(order);
 
         ProductJpaEntity product = productRepository.findById(command.getProductId())
                 .orElseThrow(() -> new NotFoundException("Product not found: " + command.getProductId()));
@@ -82,29 +104,5 @@ public class AddOrderItemService {
         ));
 
         return StaffOrderMapper.toResponse(saved);
-    }
-
-    private void assertEditable(OrderJpaEntity order) {
-        // Existing rule: only DRAFT or PENDING can be edited
-        if (order.getStatus() != OrderStatus.DRAFT && order.getStatus() != OrderStatus.PENDING) {
-            throw new BusinessRuleViolationException(Map.of(
-                    "status",
-                    "Order items can only be modified while status is DRAFT or PENDING"
-            ));
-        }
-
-        // ✅ New rule: payment SUCCEEDED locks line editing
-        PaymentStatus ps = paymentRepository.findByOrder_Id(order.getId())
-                .map(p -> p.getStatus())
-                .orElse(PaymentStatus.REQUIRES_PAYMENT);
-
-        if (ps == PaymentStatus.SUCCEEDED) {
-            throw new BusinessRuleViolationException(Map.of(
-                    "paymentStatus",
-                    "Order is locked because payment is SUCCEEDED. Reopen the order to modify items.",
-                    "orderId",
-                    String.valueOf(order.getId())
-            ));
-        }
     }
 }

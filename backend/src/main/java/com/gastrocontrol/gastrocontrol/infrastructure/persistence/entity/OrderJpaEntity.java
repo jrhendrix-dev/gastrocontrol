@@ -8,6 +8,18 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * JPA entity representing a restaurant order.
+ *
+ * <p>An order may originate from the POS (DINE_IN draft ticket) or from the
+ * customer-facing app (TAKE_AWAY / DELIVERY, starting in DRAFT pending payment).</p>
+ *
+ * <p>The {@code reopened} flag is a transient "edit window" sentinel. It is set to
+ * {@code true} by {@code ReopenOrderService} and cleared by
+ * {@code ProcessOrderAdjustmentService} once the financial delta has been resolved.
+ * While {@code reopened = true}, item modifications are permitted even for paid orders,
+ * but the order cannot be moved to FINISHED.</p>
+ */
 @Entity
 @Table(name = "orders")
 public class OrderJpaEntity {
@@ -39,6 +51,23 @@ public class OrderJpaEntity {
 
     @Column(name = "closed_at")
     private Instant closedAt;
+
+    /**
+     * Indicates the order is in an edit-unlocked state following a reopen.
+     *
+     * <p>Set to {@code true} by {@code ReopenOrderService}.
+     * Cleared to {@code false} by {@code ProcessOrderAdjustmentService}
+     * once the financial adjustment (refund or extra charge) has been handled.</p>
+     *
+     * <p>While {@code true}:
+     * <ul>
+     *   <li>Item modifications (add/remove/update qty) are permitted despite SUCCEEDED payment.</li>
+     *   <li>Transitioning to FINISHED is blocked.</li>
+     * </ul>
+     * </p>
+     */
+    @Column(name = "reopened", nullable = false)
+    private boolean reopened = false;
 
     @Version
     @Column(name = "version", nullable = false)
@@ -79,10 +108,15 @@ public class OrderJpaEntity {
     @Column(name = "pickup_notes", length = 500)
     private String pickupNotes;
 
-
     public OrderJpaEntity() {}
 
-    /** Use this in services; keeps invariants together. */
+    /**
+     * Use this in services; keeps invariants together.
+     *
+     * @param type         the order type (DINE_IN / TAKE_AWAY / DELIVERY)
+     * @param status       the initial status
+     * @param diningTable  the assigned table (required for DINE_IN, null otherwise)
+     */
     public OrderJpaEntity(OrderType type, OrderStatus status, DiningTableJpaEntity diningTable) {
         this.type = type;
         this.status = status;
@@ -98,7 +132,6 @@ public class OrderJpaEntity {
         if (this.status == null) this.status = OrderStatus.PENDING;
         if (this.type == null) this.type = OrderType.DINE_IN;
         if (this.version == null) this.version = 0;
-        // totalCents already defaults to 0
     }
 
     @PreUpdate
@@ -106,8 +139,13 @@ public class OrderJpaEntity {
         this.updatedAt = Instant.now();
     }
 
-    // -------- Domain-ish helpers --------
+    // -------- Domain helpers --------
 
+    /**
+     * Adds an item to this order and sets the bidirectional reference.
+     *
+     * @param item the item to add; ignored if null
+     */
     public void addItem(OrderItemJpaEntity item) {
         if (item == null) return;
         items.add(item);
@@ -119,16 +157,13 @@ public class OrderJpaEntity {
      *
      * <p>Because the owning side of the relationship is {@code OrderItemJpaEntity.order},
      * we must null it out so JPA can correctly apply orphan removal.</p>
+     *
+     * @param item the item to remove; ignored if null
      */
     public void removeItem(OrderItemJpaEntity item) {
         if (item == null) return;
         items.remove(item);
         item.setOrder(null);
-    }
-
-    /** Convenience if you want the entity to own the invariant. */
-    public void setTotalCents(int totalCents) {
-        this.totalCents = totalCents;
     }
 
     // -------- Getters / setters --------
@@ -145,12 +180,30 @@ public class OrderJpaEntity {
     public void setDiningTable(DiningTableJpaEntity diningTable) { this.diningTable = diningTable; }
 
     public int getTotalCents() { return totalCents; }
+    public void setTotalCents(int totalCents) { this.totalCents = totalCents; }
 
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 
     public Instant getClosedAt() { return closedAt; }
     public void setClosedAt(Instant closedAt) { this.closedAt = closedAt; }
+
+    /**
+     * Returns {@code true} if this order is in the post-reopen edit window.
+     *
+     * @return whether the order has been reopened and is pending financial adjustment
+     */
+    public boolean isReopened() { return reopened; }
+
+    /**
+     * Sets the reopened flag.
+     *
+     * <p>Should only be called by {@code ReopenOrderService} (set to {@code true}) and
+     * {@code ProcessOrderAdjustmentService} (set to {@code false}).</p>
+     *
+     * @param reopened the new flag value
+     */
+    public void setReopened(boolean reopened) { this.reopened = reopened; }
 
     public Integer getVersion() { return version; }
 
@@ -185,5 +238,4 @@ public class OrderJpaEntity {
 
     public String getPickupNotes() { return pickupNotes; }
     public void setPickupNotes(String pickupNotes) { this.pickupNotes = pickupNotes; }
-
 }

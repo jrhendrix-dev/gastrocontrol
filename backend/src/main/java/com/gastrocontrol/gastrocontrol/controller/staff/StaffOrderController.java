@@ -20,6 +20,10 @@ import com.gastrocontrol.gastrocontrol.application.service.order.GetOrderService
 import com.gastrocontrol.gastrocontrol.application.service.order.ListOrdersQuery;
 import com.gastrocontrol.gastrocontrol.application.service.order.ListOrdersService;
 import com.gastrocontrol.gastrocontrol.application.service.order.CancelOrderService;
+import com.gastrocontrol.gastrocontrol.application.service.order.ProcessOrderAdjustmentService;
+import com.gastrocontrol.gastrocontrol.application.service.order.ProcessOrderAdjustmentCommand;
+import com.gastrocontrol.gastrocontrol.application.service.order.ProcessOrderAdjustmentResult;
+import com.gastrocontrol.gastrocontrol.dto.staff.ProcessAdjustmentRequest;
 
 
 import jakarta.validation.Valid;
@@ -51,6 +55,7 @@ public class StaffOrderController {
     private final RemoveOrderItemService removeOrderItemService;
     private final SubmitOrderService submitOrderService;
     private final CancelOrderService cancelOrderService;
+    private final ProcessOrderAdjustmentService processOrderAdjustmentService;
 
 
     public StaffOrderController(
@@ -63,7 +68,7 @@ public class StaffOrderController {
             AddOrderItemService addOrderItemService,
             UpdateOrderItemQuantityService updateOrderItemQuantityService,
             RemoveOrderItemService removeOrderItemService,
-            SubmitOrderService submitOrderService, CancelOrderService cancelOrderService
+            SubmitOrderService submitOrderService, CancelOrderService cancelOrderService, ProcessOrderAdjustmentService processOrderAdjustmentService
     ) {
         this.createOrderService = createOrderService;
         this.changeOrderStatusService = changeOrderStatusService;
@@ -76,6 +81,7 @@ public class StaffOrderController {
         this.removeOrderItemService = removeOrderItemService;
         this.submitOrderService = submitOrderService;
         this.cancelOrderService = cancelOrderService;
+        this.processOrderAdjustmentService = processOrderAdjustmentService;
     }
 
     @PostMapping
@@ -293,6 +299,47 @@ public class StaffOrderController {
                 .filter(s -> !s.isEmpty())
                 .map(OrderStatus::valueOf)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Processes the financial adjustment for a reopened and modified order.
+     *
+     * <p>After a manager calls {@code /actions/reopen} and modifies the order's items,
+     * this endpoint resolves the financial delta:</p>
+     * <ul>
+     *   <li>delta &gt; 0 → extra charge (MANUAL: record reference; STRIPE: stubbed)</li>
+     *   <li>delta &lt; 0 → partial refund (MANUAL: record reference; STRIPE: stubbed)</li>
+     *   <li>delta == 0 → no action, just closes the edit window</li>
+     * </ul>
+     *
+     * <p>On success, the order's {@code reopened} flag is cleared and the order
+     * can proceed through the pipeline to FINISHED.</p>
+     *
+     * @param orderId the order to adjust
+     * @param req     the adjustment request (provider + optional manual reference)
+     * @return the adjustment result including delta and provider reference
+     */
+    @PostMapping("/{orderId}/actions/process-adjustment")
+    public ResponseEntity<ApiResponse<ProcessOrderAdjustmentResult>> processAdjustment(
+            @PathVariable Long orderId,
+            @Valid @RequestBody ProcessAdjustmentRequest req
+    ) {
+        ProcessOrderAdjustmentResult result = processOrderAdjustmentService.handle(
+                new ProcessOrderAdjustmentCommand(
+                        orderId,
+                        req.getProvider(),
+                        req.getManualReference()
+                )
+        );
+
+        String msg = String.format(
+                "Adjustment processed for order %d: %s (delta=%+d cents)",
+                result.orderId(),
+                result.adjustmentType(),
+                result.deltaCents()
+        );
+
+        return ResponseEntity.ok(ApiResponse.ok(msg, result));
     }
 
 

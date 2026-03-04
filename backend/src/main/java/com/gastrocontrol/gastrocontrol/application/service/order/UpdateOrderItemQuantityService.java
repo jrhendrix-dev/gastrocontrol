@@ -1,40 +1,60 @@
 package com.gastrocontrol.gastrocontrol.application.service.order;
 
-import com.gastrocontrol.gastrocontrol.common.exception.BusinessRuleViolationException;
 import com.gastrocontrol.gastrocontrol.common.exception.NotFoundException;
 import com.gastrocontrol.gastrocontrol.common.exception.ValidationException;
-import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
-import com.gastrocontrol.gastrocontrol.domain.enums.PaymentStatus;
 import com.gastrocontrol.gastrocontrol.dto.staff.OrderResponse;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderEventJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderItemJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderEventRepository;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderRepository;
-import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.PaymentRepository;
 import com.gastrocontrol.gastrocontrol.mapper.order.StaffOrderMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
+/**
+ * Use case for updating the quantity of an existing order line item.
+ *
+ * <p>Editability is delegated to {@link OrderEditGuard}, which enforces:</p>
+ * <ul>
+ *   <li>Status must be DRAFT or PENDING</li>
+ *   <li>Payment lock (SUCCEEDED) is bypassed only if the order has been reopened</li>
+ * </ul>
+ */
 @Service
 public class UpdateOrderItemQuantityService {
 
     private final OrderRepository orderRepository;
     private final OrderEventRepository orderEventRepository;
-    private final PaymentRepository paymentRepository;
+    private final OrderEditGuard orderEditGuard;
 
+    /**
+     * @param orderRepository      for loading and persisting the order
+     * @param orderEventRepository for the audit trail
+     * @param orderEditGuard       shared guard for editability checks
+     */
     public UpdateOrderItemQuantityService(
             OrderRepository orderRepository,
             OrderEventRepository orderEventRepository,
-            PaymentRepository paymentRepository
+            OrderEditGuard orderEditGuard
     ) {
         this.orderRepository = orderRepository;
         this.orderEventRepository = orderEventRepository;
-        this.paymentRepository = paymentRepository;
+        this.orderEditGuard = orderEditGuard;
     }
 
+    /**
+     * Sets the quantity of a specific order line item to the given value.
+     *
+     * @param command must contain orderId, itemId, and quantity &gt; 0
+     * @return the updated order response
+     * @throws ValidationException           if required fields are missing or invalid
+     * @throws NotFoundException             if the order or item does not exist
+     * @throws com.gastrocontrol.gastrocontrol.common.exception.BusinessRuleViolationException
+     *                                       if the order is not in an editable state
+     */
     @Transactional
     public OrderResponse handle(UpdateOrderItemQuantityCommand command) {
         if (command == null) throw new ValidationException(Map.of("command", "Command is required"));
@@ -45,13 +65,15 @@ public class UpdateOrderItemQuantityService {
         OrderJpaEntity order = orderRepository.findHydratedById(command.getOrderId())
                 .orElseThrow(() -> new NotFoundException("Order not found: " + command.getOrderId()));
 
-        assertEditable(order);
+        // Delegates to shared guard — respects the reopened edit window
+        orderEditGuard.assertEditable(order);
 
         OrderItemJpaEntity item = order.getItems().stream()
                 .filter(i -> i.getId().equals(command.getItemId()))
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException(
-                        "Order item not found: orderId=" + command.getOrderId() + ", itemId=" + command.getItemId()
+                        "Order item not found: orderId=" + command.getOrderId() +
+                                ", itemId=" + command.getItemId()
                 ));
 
         int oldQty = item.getQuantity();
@@ -72,27 +94,5 @@ public class UpdateOrderItemQuantityService {
         ));
 
         return StaffOrderMapper.toResponse(saved);
-    }
-
-    private void assertEditable(OrderJpaEntity order) {
-        if (order.getStatus() != OrderStatus.DRAFT && order.getStatus() != OrderStatus.PENDING) {
-            throw new BusinessRuleViolationException(Map.of(
-                    "status",
-                    "Order items can only be modified while status is DRAFT or PENDING"
-            ));
-        }
-
-        PaymentStatus ps = paymentRepository.findByOrder_Id(order.getId())
-                .map(p -> p.getStatus())
-                .orElse(PaymentStatus.REQUIRES_PAYMENT);
-
-        if (ps == PaymentStatus.SUCCEEDED) {
-            throw new BusinessRuleViolationException(Map.of(
-                    "paymentStatus",
-                    "Order is locked because payment is SUCCEEDED. Reopen the order to modify items.",
-                    "orderId",
-                    String.valueOf(order.getId())
-            ));
-        }
     }
 }
