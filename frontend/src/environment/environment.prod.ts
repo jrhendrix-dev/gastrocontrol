@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBase: 'https://YOUR_DOMAIN_OR_PROXY', // !! REMEMBER TO FIX THIS
+  apiBase: '', // Empty string = relative URLs → Nginx proxies /api/* to the backend container
 };
