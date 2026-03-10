@@ -223,6 +223,53 @@
                   </span>
                 </div>
               </div>
+
+              <!-- ── Notes ─────────────────────────────────────────────────── -->
+              <div class="mt-4">
+                <div class="mb-2 flex items-center justify-between">
+                  <div class="gc-section-title text-sm">Notas del pedido</div>
+                  <span class="text-xs text-black/40" *ngIf="o.notes.length">
+                {{ o.notes.length }} nota{{ o.notes.length !== 1 ? 's' : '' }}
+              </span>
+                </div>
+
+                <!-- Existing notes list -->
+                <div class="mb-3 space-y-2" *ngIf="o.notes.length > 0">
+                  <div
+                    *ngFor="let n of o.notes; trackBy: trackNote"
+                    class="flex items-start gap-2 rounded-lg border border-amber-200/60 bg-amber-50/80 px-3 py-2 text-sm"
+                  >
+                    <span class="mt-0.5 shrink-0 text-amber-500">📝</span>
+                    <div class="min-w-0 flex-1">
+                      <p class="break-words text-black/80">{{ n.note }}</p>
+                      <p class="mt-0.5 text-[11px] text-black/40">
+                        {{ n.authorRole ?? 'Staff' }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Add note form -->
+                <div class="flex items-start gap-2">
+              <textarea
+                class="gc-input min-h-[60px] flex-1 resize-none text-sm"
+                placeholder="Añadir nota (alergia, petición especial...)"
+                [(ngModel)]="newNoteValue"
+                [disabled]="addingNote()"
+                maxlength="500"
+                rows="2"
+              ></textarea>
+                  <button
+                    class="btn btn-outline btn-sm mt-0.5 shrink-0 self-start"
+                    (click)="addNote(o.id)"
+                    [disabled]="!newNoteValue.trim() || addingNote()"
+                    type="button"
+                    title="Guardar nota"
+                  >
+                    {{ addingNote() ? '...' : '+ Nota' }}
+                  </button>
+                </div>
+              </div>
             </ng-container>
 
             <ng-template #noOrderLines>

@@ -3,8 +3,6 @@ package com.gastrocontrol.gastrocontrol.dto.staff;
 
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderType;
-import com.gastrocontrol.gastrocontrol.domain.enums.PaymentProvider;
-import com.gastrocontrol.gastrocontrol.domain.enums.PaymentStatus;
 import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
 
@@ -12,31 +10,41 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Response payload for a created order (staff-facing).
- * <p>
- * Always includes {@link OrderType}. Delivery / pickup snapshots are included
- * only when relevant to the order type.
+ * Response payload for a staff-facing order.
+ *
+ * <p>Always includes {@link OrderType}. Delivery / pickup snapshots are included
+ * only when relevant to the order type. {@code createdAt} is always present and
+ * is used by the Kitchen Display System to compute elapsed time and urgency.</p>
  */
 public class OrderResponse {
 
     private Long id;
     private OrderType type;
 
-    /** Present only for DINE_IN orders */
+    /** Present only for DINE_IN orders. */
     private Long tableId;
 
     private int totalCents;
     private OrderStatus status;
 
-    /** Present only for DELIVERY orders */
+    /**
+     * When the order was first created.
+     * Serialised as an ISO-8601 string by Jackson ({@code WRITE_DATES_AS_TIMESTAMPS=false}).
+     */
+    private Instant createdAt;
+
+    /** Present only for DELIVERY orders. */
     private DeliverySnapshotDto delivery;
 
-    /** Present only for TAKE_AWAY orders */
+    /** Present only for TAKE_AWAY orders. */
     private PickupSnapshotDto pickup;
 
     private List<OrderItemResponse> items;
 
-    // ---------- Getters / setters ----------
+    /** Notes left by staff, sorted oldest-first. May be empty but never null. */
+    private List<OrderNoteResponse> notes;
+
+    // ── Getters / setters ────────────────────────────────────────────────────
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -53,6 +61,9 @@ public class OrderResponse {
     public OrderStatus getStatus() { return status; }
     public void setStatus(OrderStatus status) { this.status = status; }
 
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
     public DeliverySnapshotDto getDelivery() { return delivery; }
     public void setDelivery(DeliverySnapshotDto delivery) { this.delivery = delivery; }
 
@@ -62,16 +73,21 @@ public class OrderResponse {
     public List<OrderItemResponse> getItems() { return items; }
     public void setItems(List<OrderItemResponse> items) { this.items = items; }
 
-    // ---------- Nested DTO ----------
+    public List<OrderNoteResponse> getNotes() { return notes; }
+    public void setNotes(List<OrderNoteResponse> notes) { this.notes = notes; }
 
+    // ── Nested DTOs ──────────────────────────────────────────────────────────
+
+    /**
+     * Represents a single line item within an order.
+     */
     public static class OrderItemResponse {
 
         /**
-         * Primary key of the order line item (order_items.id).
-         * This is not the product id; it identifies the specific line within the order.
+         * Primary key of the order line (order_items.id).
+         * This is NOT the product id — it uniquely identifies this line within the order.
          */
         private Long id;
-
         private Long productId;
         private String name;
         private int quantity;
@@ -91,5 +107,28 @@ public class OrderResponse {
 
         public int getUnitPriceCents() { return unitPriceCents; }
         public void setUnitPriceCents(int unitPriceCents) { this.unitPriceCents = unitPriceCents; }
+    }
+
+    /**
+     * Represents a single note attached to an order.
+     */
+    public static class OrderNoteResponse {
+
+        private Long id;
+        private String note;
+        private String authorRole;
+        private Instant createdAt;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+
+        public String getNote() { return note; }
+        public void setNote(String note) { this.note = note; }
+
+        public String getAuthorRole() { return authorRole; }
+        public void setAuthorRole(String authorRole) { this.authorRole = authorRole; }
+
+        public Instant getCreatedAt() { return createdAt; }
+        public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     }
 }

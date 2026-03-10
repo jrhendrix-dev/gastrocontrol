@@ -1,3 +1,5 @@
+// src/app/core/api/staff/staff.models.ts
+
 export type OrderType = 'DINE_IN' | 'TAKE_AWAY' | 'DELIVERY';
 
 export type OrderStatus =
@@ -9,6 +11,8 @@ export type OrderStatus =
   | 'FINISHED'
   | 'CANCELLED'
   | string;
+
+// ── Table models ──────────────────────────────────────────────────────────────
 
 export interface DiningTableActiveOrderSummary {
   orderId: number;
@@ -22,6 +26,8 @@ export interface DiningTableResponse {
   activeOrder?: DiningTableActiveOrderSummary | null;
 }
 
+// ── Product models ────────────────────────────────────────────────────────────
+
 export interface ProductResponse {
   id: number;
   name: string;
@@ -32,12 +38,26 @@ export interface ProductResponse {
   categoryName?: string | null;
 }
 
+// ── Order models ──────────────────────────────────────────────────────────────
+
 export interface OrderItemResponse {
-  id: number; // order_items.id
+  /** Primary key of the order line (order_items.id) — NOT the product id. */
+  id: number;
   productId: number;
   name: string;
   quantity: number;
   unitPriceCents: number;
+}
+
+/**
+ * A single staff-written note attached to an order.
+ * Notes are append-only and sorted oldest-first by the backend.
+ */
+export interface OrderNoteResponse {
+  id: number;
+  note: string;
+  authorRole: string | null;
+  createdAt: string; // ISO-8601
 }
 
 export interface OrderResponse {
@@ -46,8 +66,32 @@ export interface OrderResponse {
   tableId?: number | null;
   totalCents: number;
   status: OrderStatus;
+
+  /**
+   * ISO-8601 timestamp of when the order was created.
+   * Used by the Kitchen Display to compute elapsed time and urgency.
+   */
+  createdAt: string;
+
+  /** Present only for TAKE_AWAY orders. */
+  pickup?: { name: string | null; phone: string | null; notes: string | null } | null;
+
+  /** Present only for DELIVERY orders. */
+  delivery?: {
+    name: string | null;
+    phone: string | null;
+    addressLine1: string | null;
+    city: string | null;
+    notes: string | null;
+  } | null;
+
   items: OrderItemResponse[];
+
+  /** Staff notes attached to this order. Empty array if none. */
+  notes: OrderNoteResponse[];
 }
+
+// ── Request models ────────────────────────────────────────────────────────────
 
 export interface CreateDraftOrderRequest {
   type: OrderType;
@@ -61,4 +105,13 @@ export interface AddOrderItemRequest {
 
 export interface UpdateOrderItemQuantityRequest {
   quantity: number;
+}
+
+export interface ChangeOrderStatusRequest {
+  newStatus: string;
+  message?: string | null;
+}
+
+export interface AddOrderNoteRequest {
+  note: string;
 }

@@ -143,4 +143,37 @@ body {
     @apply bg-white/30 border border-black/15 text-black/80
     hover:bg-white/50 focus-visible:ring-black/20;
   }
+
+  /*
+ * ── Kitchen Display System (KDS) additions ────────────────────────────────────
+ *
+ * Append these rules to the existing @layer components block inside styles.css.
+ * They add urgency ring styles for order cards that have been waiting too long.
+ *
+ * Urgency thresholds (set in StaffKitchenPage.urgencyClass()):
+ *   kds-warning → 12+ minutes waiting
+ *   kds-urgent  → 20+ minutes waiting
+ */
+
+  /* Paste inside the existing  @layer components { ... }  block in styles.css */
+
+  /* ── KDS urgency rings ── */
+  .kds-warning {
+    @apply ring-2 ring-amber-400/60;
+  }
+
+  .kds-urgent {
+    @apply ring-2 ring-rose-500/70;
+    animation: kds-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes kds-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    50%       { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2); }
+  }
+
+  /* border-black/8 utility — Tailwind doesn't generate this by default */
+  .border-black\/8 {
+    border-color: rgba(0, 0, 0, 0.08);
+  }
 }

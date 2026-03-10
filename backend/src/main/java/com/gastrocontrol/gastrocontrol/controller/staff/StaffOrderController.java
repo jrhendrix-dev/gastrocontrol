@@ -56,6 +56,7 @@ public class StaffOrderController {
     private final SubmitOrderService submitOrderService;
     private final CancelOrderService cancelOrderService;
     private final ProcessOrderAdjustmentService processOrderAdjustmentService;
+    private final AddOrderNoteService addOrderNoteService;
 
 
     public StaffOrderController(
@@ -68,7 +69,7 @@ public class StaffOrderController {
             AddOrderItemService addOrderItemService,
             UpdateOrderItemQuantityService updateOrderItemQuantityService,
             RemoveOrderItemService removeOrderItemService,
-            SubmitOrderService submitOrderService, CancelOrderService cancelOrderService, ProcessOrderAdjustmentService processOrderAdjustmentService
+            SubmitOrderService submitOrderService, CancelOrderService cancelOrderService, ProcessOrderAdjustmentService processOrderAdjustmentService, AddOrderNoteService addOrderNoteService
     ) {
         this.createOrderService = createOrderService;
         this.changeOrderStatusService = changeOrderStatusService;
@@ -82,6 +83,7 @@ public class StaffOrderController {
         this.submitOrderService = submitOrderService;
         this.cancelOrderService = cancelOrderService;
         this.processOrderAdjustmentService = processOrderAdjustmentService;
+        this.addOrderNoteService = addOrderNoteService;
     }
 
     @PostMapping
@@ -341,6 +343,9 @@ public class StaffOrderController {
 
         return ResponseEntity.ok(ApiResponse.ok(msg, result));
     }
+
+
+    
 
 
 

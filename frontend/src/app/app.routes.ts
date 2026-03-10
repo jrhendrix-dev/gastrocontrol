@@ -1,3 +1,4 @@
+// src/app/app.routes.ts
 import { Routes } from '@angular/router';
 import { AppShellComponent } from './layout/app-shell.component';
 import { HomePage } from './features/home/home.page';
@@ -5,26 +6,38 @@ import { LoginPage } from './features/auth/login.page';
 import { PlaceholderPage } from './features/placeholder/placeholder.page';
 import { StaffPosPage } from './features/staff/pos/staff-pos.page';
 import { MePage } from './features/me/pages/me.page';
-import {ConfirmEmailChangePage} from '@app/app/features/me/pages/confirm-email-change.page';
+import { ConfirmEmailChangePage } from '@app/app/features/me/pages/confirm-email-change.page';
 
 export const routes: Routes = [
-  // Standalone pages (no navbar/footer)
+  // ── Standalone pages (no navbar / shell) ────────────────────────────────
   { path: 'login', component: LoginPage },
 
-  // Shell-wrapped pages
+  // ── Shell-wrapped pages ──────────────────────────────────────────────────
   {
     path: '',
     component: AppShellComponent,
     children: [
       { path: '', component: HomePage },
 
-      // My profile
+      // Profile
       { path: 'me', component: MePage },
       { path: 'confirm-email-change', component: ConfirmEmailChangePage },
 
-
-      // temporary routes
+      // Staff – POS (eager, used constantly)
       { path: 'staff/pos', component: StaffPosPage },
+
+      // Staff – Kitchen Display (lazy-loaded: only kitchen staff need it)
+      {
+        path: 'staff/kitchen',
+        loadComponent: () =>
+          import('./features/staff/kitchen/staff-kitchen.page').then(
+            (m) => m.StaffKitchenPage
+          ),
+      },
+
+      // Placeholders (to be replaced in future phases)
+      { path: 'staff/orders', component: PlaceholderPage },
+      { path: 'admin', component: PlaceholderPage },
       { path: 'menu', component: PlaceholderPage },
     ],
   },

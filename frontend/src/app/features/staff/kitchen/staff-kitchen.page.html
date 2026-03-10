@@ -1,0 +1,236 @@
+<!-- staff-kitchen.page.html -->
+<div class="mx-auto max-w-[1600px] p-4">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">Cocina</h1>
+      <p class="text-sm text-black/60">
+        Vista en tiempo real de los pedidos activos · auto-refresh cada 15 s
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Last refreshed indicator -->
+      <span class="text-xs text-black/45" *ngIf="lastRefreshed()">
+        Actualizado: {{ lastRefreshed() | date : 'HH:mm:ss' }}
+      </span>
+
+      <!-- Manual refresh button -->
+      <button
+        class="btn btn-outline"
+        (click)="refresh()"
+        [disabled]="loading()"
+        type="button"
+        title="Refrescar ahora"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-4 w-4"
+          [class.animate-spin]="loading()"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          />
+        </svg>
+        {{ loading() ? 'Cargando...' : 'Refrescar' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Loading skeleton ────────────────────────────────────────────────── -->
+  <div
+    *ngIf="loading() && orders().length === 0"
+    class="grid gap-4 lg:grid-cols-3"
+  >
+    <div *ngFor="let _ of [1, 2, 3]" class="gc-card p-4">
+      <div class="mb-4 h-5 w-32 animate-pulse rounded-md bg-black/10"></div>
+      <div class="space-y-3">
+        <div *ngFor="let __ of [1, 2]" class="h-32 animate-pulse rounded-xl bg-black/5"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Board: three-column pipeline ────────────────────────────────────── -->
+  <div
+    *ngIf="!loading() || orders().length > 0"
+    class="grid gap-4 lg:grid-cols-3"
+  >
+    <div
+      *ngFor="let col of columns"
+      class="flex flex-col gap-3"
+    >
+      <!-- Column header -->
+      <div
+        class="gc-card-tiny flex items-center justify-between px-4 py-3"
+        [ngClass]="{
+          'border-l-4 border-l-amber-400':   col === 'PENDING',
+          'border-l-4 border-l-sky-400':     col === 'IN_PREPARATION',
+          'border-l-4 border-l-emerald-500': col === 'READY'
+        }"
+      >
+        <div class="flex items-center gap-2">
+          <!-- Colour dot -->
+          <span
+            class="inline-block h-2.5 w-2.5 rounded-full"
+            [ngClass]="{
+              'bg-amber-400':   col === 'PENDING',
+              'bg-sky-400':     col === 'IN_PREPARATION',
+              'bg-emerald-500': col === 'READY'
+            }"
+          ></span>
+          <span class="font-semibold tracking-tight">{{ statusLabel[col] }}</span>
+        </div>
+
+        <!-- Order count badge -->
+        <span
+          class="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white"
+          [ngClass]="{
+            'bg-amber-400':   col === 'PENDING',
+            'bg-sky-500':     col === 'IN_PREPARATION',
+            'bg-emerald-600': col === 'READY'
+          }"
+        >
+          {{ ordersFor(col).length }}
+        </span>
+      </div>
+
+      <!-- Empty column placeholder -->
+      <div
+        *ngIf="ordersFor(col).length === 0"
+        class="rounded-xl border border-dashed border-black/15 p-6 text-center text-sm text-black/40"
+      >
+        Sin pedidos
+      </div>
+
+      <!-- Order cards -->
+      <div
+        *ngFor="let order of ordersFor(col); trackBy: trackOrder"
+        class="gc-card p-4 transition-shadow hover:shadow-md"
+        [class.kds-urgent]="urgencyClass(order.createdAt, col) === 'kds-urgent'"
+        [class.kds-warning]="urgencyClass(order.createdAt, col) === 'kds-warning'"
+      >
+        <!-- Card header -->
+        <div class="mb-3 flex items-start justify-between gap-2">
+          <div>
+            <!-- Order ID + type badge -->
+            <div class="flex items-center gap-2">
+              <span class="text-base font-bold tracking-tight">#{{ order.id }}</span>
+              <span
+                class="gc-chip"
+                [ngClass]="{
+                  'gc-chip-pending': order.type === 'DINE_IN',
+                  'gc-chip-sent':    order.type === 'TAKE_AWAY',
+                  'gc-chip-draft':   order.type === 'DELIVERY'
+                }"
+              >
+                {{ order.type === 'DINE_IN' ? 'Mesa' : order.type === 'TAKE_AWAY' ? 'Recogida' : 'Delivery' }}
+              </span>
+            </div>
+
+            <!-- Table label or customer name -->
+            <div class="mt-0.5 text-sm font-semibold text-black/70" *ngIf="order.type === 'DINE_IN'">
+              Mesa {{ order.tableId }}
+            </div>
+            <div class="mt-0.5 text-sm font-semibold text-black/70" *ngIf="order.type === 'TAKE_AWAY' && order.pickup?.name">
+              {{ order.pickup?.name }}
+            </div>
+            <div class="mt-0.5 text-sm font-semibold text-black/70" *ngIf="order.type === 'DELIVERY' && order.delivery?.name">
+              {{ order.delivery?.name }}
+            </div>
+          </div>
+
+          <!-- Elapsed time with urgency colour -->
+          <div
+            class="shrink-0 rounded-md px-2 py-1 text-xs font-semibold"
+            [ngClass]="{
+              'bg-rose-100 text-rose-700':   urgencyClass(order.createdAt, col) === 'kds-urgent',
+              'bg-amber-100 text-amber-700': urgencyClass(order.createdAt, col) === 'kds-warning',
+              'bg-black/5 text-black/50':    urgencyClass(order.createdAt, col) === ''
+            }"
+          >
+            {{ elapsed(order.createdAt) }}
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="mb-3 border-t border-black/8"></div>
+
+        <!-- Item list -->
+        <ul class="mb-4 space-y-1.5">
+          <li
+            *ngFor="let item of order.items; trackBy: trackItem"
+            class="flex items-baseline justify-between gap-2 text-sm"
+          >
+            <span class="font-medium">{{ item.name }}</span>
+            <span
+              class="shrink-0 rounded bg-black/5 px-1.5 py-0.5 text-xs font-bold tabular-nums text-black/70"
+            >
+              ×{{ item.quantity }}
+            </span>
+          </li>
+        </ul>
+
+        <!-- Delivery notes (if any) -->
+        <div
+          *ngIf="order.delivery?.notes"
+          class="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"
+        >
+          📝 {{ order.delivery?.notes }}
+        </div>
+        <div
+          *ngIf="order.pickup?.notes"
+          class="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"
+        >
+          📝 {{ order.pickup?.notes }}
+        </div>
+
+        <!-- Advance button -->
+        <button
+          class="btn w-full"
+          [ngClass]="{
+            'btn-primary':                    col === 'PENDING',
+            'btn-accent':                     col === 'IN_PREPARATION',
+            'btn-success':                    col === 'READY'
+          }"
+          (click)="advance(order, col)"
+          [disabled]="advancingId() === order.id || advancingId() !== null"
+          type="button"
+        >
+          <svg
+            *ngIf="advancingId() === order.id"
+            class="h-4 w-4 animate-spin"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          {{ advancingId() === order.id ? 'Guardando...' : advanceLabel[col] }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Empty board (no active kitchen orders at all) ───────────────────── -->
+  <div
+    *ngIf="!loading() && orders().length === 0"
+    class="mt-8 flex flex-col items-center justify-center gap-3 py-16 text-center"
+  >
+    <div class="text-5xl">🍽️</div>
+    <p class="text-lg font-semibold text-black/60">Sin pedidos activos</p>
+    <p class="text-sm text-black/40">
+      Los pedidos enviados desde el POS aparecerán aquí automáticamente.
+    </p>
+  </div>
+
+</div>

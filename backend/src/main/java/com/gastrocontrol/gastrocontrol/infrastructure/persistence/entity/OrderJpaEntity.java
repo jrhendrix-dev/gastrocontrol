@@ -2,6 +2,7 @@ package com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity;
 
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderType;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderNoteJpaEntity;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -75,6 +76,10 @@ public class OrderJpaEntity {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemJpaEntity> items = new ArrayList<>();
+
+     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+     @OrderBy("createdAt ASC")
+     private List<OrderNoteJpaEntity> notes = new ArrayList<>();
 
     // Delivery snapshot fields (nullable; required only for DELIVERY orders)
     @Column(name = "delivery_name", length = 120)
@@ -238,4 +243,6 @@ public class OrderJpaEntity {
 
     public String getPickupNotes() { return pickupNotes; }
     public void setPickupNotes(String pickupNotes) { this.pickupNotes = pickupNotes; }
+
+     public List<OrderNoteJpaEntity> getNotes() { return notes; }
 }

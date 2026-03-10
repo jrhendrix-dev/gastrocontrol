@@ -39,6 +39,8 @@ export class StaffPosPage implements OnInit {
   currentTable = signal<DiningTableResponse | null>(null);
   order = signal<OrderResponse | null>(null);
   orderError = signal<string | null>(null);
+  newNoteValue = '';              // bound to the textarea via [(ngModel)]
+  addingNote = signal(false);
 
   // Category browsing
   catalogProducts = signal<CatalogProductDto[]>([]);
@@ -92,6 +94,15 @@ export class StaffPosPage implements OnInit {
   trackProduct = (_: number, p: ProductResponse) => p.id;
   trackItem = (_: number, i: any) => i.id;
   trackCategory = (_: number, c: CategoryVm) => String(c.id);
+  /**
+   * TrackBy for the notes list — prevents DOM thrashing when a new note is added.
+   *
+   * @param _ index (unused)
+   * @param note the note item
+   */
+  trackNote(_: number, note: { id: number }): number {
+    return note.id;
+  }
 
   onTableQueryChange(v: string) {
     this.tableQueryValue = v ?? '';
@@ -269,6 +280,32 @@ export class StaffPosPage implements OnInit {
         this.refreshTables();
       },
       error: (err) => this.orderError.set(this.extractErrorMessage(err) ?? 'No se pudo enviar a cocina.'),
+    });
+  }
+
+  /**
+   * Submits a new note for the current order.
+   *
+   * On success the order signal is updated (which re-renders the notes list),
+   * and the textarea is cleared. On error a message is shown inline.
+   *
+   * @param orderId the order to annotate
+   */
+  addNote(orderId: number): void {
+    const text = this.newNoteValue.trim();
+    if (!text) return;
+
+    this.addingNote.set(true);
+    this.ordersApi.addNote(orderId, { note: text }).subscribe({
+      next: (updated) => {
+        this.order.set(updated);
+        this.newNoteValue = '';
+        this.addingNote.set(false);
+      },
+      error: (err) => {
+        this.orderError.set(this.extractErrorMessage(err) ?? 'No se pudo guardar la nota.');
+        this.addingNote.set(false);
+      },
     });
   }
 
