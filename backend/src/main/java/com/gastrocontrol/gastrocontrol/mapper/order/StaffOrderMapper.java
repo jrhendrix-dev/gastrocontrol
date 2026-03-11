@@ -90,6 +90,9 @@ public final class StaffOrderMapper {
                 note.setNote(n.getNote());
                 note.setAuthorRole(n.getAuthorRole());
                 note.setCreatedAt(n.getCreatedAt());
+                // Edit audit fields — null when the note has never been edited
+                note.setOriginalNote(n.getOriginalNote());
+                note.setEditedAt(n.getEditedAt());
                 return note;
             }).collect(Collectors.toList()));
         } else {

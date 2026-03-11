@@ -9,6 +9,7 @@ import {
   CreateDraftOrderRequest,
   OrderResponse,
   UpdateOrderItemQuantityRequest,
+  UpdateOrderNoteRequest,
 } from './staff.models';
 
 /**
@@ -37,7 +38,11 @@ export class StaffOrdersApi {
   }
 
   /** Updates the quantity of a specific order line item. */
-  updateItemQuantity(orderId: number, itemId: number, req: UpdateOrderItemQuantityRequest): Observable<OrderResponse> {
+  updateItemQuantity(
+    orderId: number,
+    itemId: number,
+    req: UpdateOrderItemQuantityRequest
+  ): Observable<OrderResponse> {
     return this.http.patch<OrderResponse>(`/api/staff/orders/${orderId}/items/${itemId}`, req);
   }
 
@@ -71,5 +76,32 @@ export class StaffOrdersApi {
    */
   addNote(orderId: number, req: AddOrderNoteRequest): Observable<OrderResponse> {
     return this.http.post<OrderResponse>(`/api/staff/orders/${orderId}/notes`, req);
+  }
+
+  /**
+   * Edits the text of an existing note.
+   *
+   * The backend preserves the original text on the first edit (audit trail).
+   * Editing is permitted regardless of order status.
+   *
+   * @param orderId the order the note belongs to
+   * @param noteId  the note to edit
+   * @param req     the replacement text (max 500 chars, must not be blank)
+   */
+  updateNote(orderId: number, noteId: number, req: UpdateOrderNoteRequest): Observable<OrderResponse> {
+    return this.http.patch<OrderResponse>(`/api/staff/orders/${orderId}/notes/${noteId}`, req);
+  }
+
+  /**
+   * Deletes a note from an order.
+   *
+   * Only permitted while the order is DRAFT or PENDING.
+   * The backend rejects the request with 422 once the order reaches IN_PREPARATION.
+   *
+   * @param orderId the order the note belongs to
+   * @param noteId  the note to delete
+   */
+  deleteNote(orderId: number, noteId: number): Observable<OrderResponse> {
+    return this.http.delete<OrderResponse>(`/api/staff/orders/${orderId}/notes/${noteId}`);
   }
 }

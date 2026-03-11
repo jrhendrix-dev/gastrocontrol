@@ -50,6 +50,8 @@ public class StaffOrderController {
     private final CancelOrderService cancelOrderService;
     private final ProcessOrderAdjustmentService processOrderAdjustmentService;
     private final AddOrderNoteService addOrderNoteService;
+    private final UpdateOrderNoteService updateOrderNoteService;
+    private final DeleteOrderNoteService deleteOrderNoteService;
 
 
     public StaffOrderController(
@@ -62,7 +64,7 @@ public class StaffOrderController {
             AddOrderItemService addOrderItemService,
             UpdateOrderItemQuantityService updateOrderItemQuantityService,
             RemoveOrderItemService removeOrderItemService,
-            SubmitOrderService submitOrderService, CancelOrderService cancelOrderService, ProcessOrderAdjustmentService processOrderAdjustmentService, AddOrderNoteService addOrderNoteService
+            SubmitOrderService submitOrderService, CancelOrderService cancelOrderService, ProcessOrderAdjustmentService processOrderAdjustmentService, AddOrderNoteService addOrderNoteService, UpdateOrderNoteService updateOrderNoteService, DeleteOrderNoteService deleteOrderNoteService
     ) {
         this.createOrderService = createOrderService;
         this.changeOrderStatusService = changeOrderStatusService;
@@ -77,6 +79,8 @@ public class StaffOrderController {
         this.cancelOrderService = cancelOrderService;
         this.processOrderAdjustmentService = processOrderAdjustmentService;
         this.addOrderNoteService = addOrderNoteService;
+        this.updateOrderNoteService = updateOrderNoteService;
+        this.deleteOrderNoteService = deleteOrderNoteService;
     }
 
     @PostMapping
@@ -357,9 +361,50 @@ public class StaffOrderController {
         );
     }
 
+    /**
+     * Edits the text of an existing order note.
+     *
+     * <p>Editing is permitted regardless of order status so the kitchen always
+     * gets the corrected version of time-sensitive instructions.</p>
+     *
+     * <p>On the first edit the original text is preserved in the database
+     * ({@code original_note}). Subsequent edits overwrite only the live text
+     * and update the {@code edited_at} timestamp.</p>
+     *
+     * @param orderId the order the note belongs to
+     * @param noteId  the note to edit
+     * @param request the replacement text
+     * @return the updated order (all notes included)
+     */
+    @PatchMapping("/{orderId}/notes/{noteId}")
+    public ResponseEntity<OrderResponse> updateNote(
+            @PathVariable Long orderId,
+            @PathVariable Long noteId,
+            @Valid @RequestBody UpdateNoteRequest request
+    ) {
+        return ResponseEntity.ok(
+                updateOrderNoteService.handle(orderId, noteId, request.getNote())
+        );
+    }
 
-    
-
-
-
+    /**
+     * Deletes a note from an order.
+     *
+     * <p>Deletion is blocked once the order has reached {@code IN_PREPARATION}
+     * or beyond — by that point the note is part of the kitchen's live
+     * communication record and must not disappear.</p>
+     *
+     * @param orderId the order the note belongs to
+     * @param noteId  the note to delete
+     * @return the updated order (remaining notes included)
+     */
+    @DeleteMapping("/{orderId}/notes/{noteId}")
+    public ResponseEntity<OrderResponse> deleteNote(
+            @PathVariable Long orderId,
+            @PathVariable Long noteId
+    ) {
+        return ResponseEntity.ok(
+                deleteOrderNoteService.handle(orderId, noteId)
+        );
+    }
 }

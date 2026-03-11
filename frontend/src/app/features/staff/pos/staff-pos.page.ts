@@ -41,6 +41,30 @@ export class StaffPosPage implements OnInit {
   orderError = signal<string | null>(null);
   newNoteValue = '';              // bound to the textarea via [(ngModel)]
   addingNote = signal(false);
+  /**
+   * The id of the note currently being edited inline, or null if none.
+   * Used to show/hide the inline edit textarea on the correct note card.
+   */
+  editingNoteId = signal<number | null>(null);
+
+  /**
+   * The live text value inside the inline edit textarea.
+   * Bound via [(ngModel)].
+   */
+  editingNoteValue = '';
+
+  /**
+   * The id of the note awaiting delete confirmation, or null if none.
+   * A note moves to this state when the user first clicks the trash icon.
+   * A second click confirms and fires the delete request.
+   */
+  confirmDeleteNoteId = signal<number | null>(null);
+
+  /** Whether a note update request is currently in-flight. */
+  savingNote = signal(false);
+
+  /** Whether a note delete request is currently in-flight. */
+  deletingNote = signal(false);
 
   // Category browsing
   catalogProducts = signal<CatalogProductDto[]>([]);
@@ -305,6 +329,137 @@ export class StaffPosPage implements OnInit {
       error: (err) => {
         this.orderError.set(this.extractErrorMessage(err) ?? 'No se pudo guardar la nota.');
         this.addingNote.set(false);
+      },
+    });
+  }
+
+  /**
+   * Enters inline-edit mode for the given note.
+   * Pre-fills the textarea with the note's current text.
+   *
+   * @param noteId  the note to edit
+   * @param current the note's current text value
+   */
+  startEditNote(noteId: number, current: string): void {
+    this.editingNoteId.set(noteId);
+    this.editingNoteValue = current;
+    this.confirmDeleteNoteId.set(null); // cancel any pending delete confirmation
+  }
+
+  /**
+   * Cancels inline-edit mode without saving.
+   */
+  cancelEditNote(): void {
+    this.editingNoteId.set(null);
+    this.editingNoteValue = '';
+  }
+
+  /**
+   * Saves the edited note text.
+   *
+   * Optimistic update: the order signal is updated immediately with the new text
+   * so the UI feels instant. On error the original text is restored and an error
+   * message is shown.
+   *
+   * @param orderId the order the note belongs to
+   * @param noteId  the note to update
+   */
+  saveEditNote(orderId: number, noteId: number): void {
+    const text = this.editingNoteValue.trim();
+    if (!text) return;
+
+    const previousOrder = this.order();
+    if (!previousOrder) return;
+
+    // Optimistic update: replace note text in the local signal immediately
+    this.order.update((o) =>
+      o
+        ? {
+          ...o,
+          notes: o.notes.map((n) =>
+            n.id === noteId ? { ...n, note: text } : n
+          ),
+        }
+        : null
+    );
+
+    this.editingNoteId.set(null);
+    this.editingNoteValue = '';
+    this.savingNote.set(true);
+
+    this.ordersApi.updateNote(orderId, noteId, { note: text }).subscribe({
+      next: (updated) => {
+        // Reconcile with server truth (picks up originalNote / editedAt)
+        this.order.set(updated);
+        this.savingNote.set(false);
+      },
+      error: (err) => {
+        // Roll back to the previous order state
+        this.order.set(previousOrder);
+        this.savingNote.set(false);
+        this.orderError.set(this.extractErrorMessage(err) ?? 'No se pudo guardar la nota.');
+      },
+    });
+  }
+
+  /**
+   * Handles the delete flow for a note.
+   *
+   * First click: sets the note as pending confirmation (shows a red "confirm" button).
+   * Second click (same noteId): fires the delete request.
+   * Clicking a different note's trash icon cancels the previous confirmation.
+   *
+   * @param orderId the order the note belongs to
+   * @param noteId  the note to delete
+   */
+  requestDeleteNote(orderId: number, noteId: number): void {
+    // Cancel any open inline edit
+    this.editingNoteId.set(null);
+
+    if (this.confirmDeleteNoteId() === noteId) {
+      // Second click: confirmed — fire the delete
+      this.executeDeleteNote(orderId, noteId);
+    } else {
+      // First click: enter confirmation state
+      this.confirmDeleteNoteId.set(noteId);
+    }
+  }
+
+  /**
+   * Cancels a pending delete confirmation without deleting.
+   */
+  cancelDeleteNote(): void {
+    this.confirmDeleteNoteId.set(null);
+  }
+
+  /**
+   * Fires the actual delete request after confirmation.
+   * Uses optimistic removal for immediate feedback.
+   *
+   * @param orderId the order the note belongs to
+   * @param noteId  the note to delete
+   */
+  private executeDeleteNote(orderId: number, noteId: number): void {
+    const previousOrder = this.order();
+    if (!previousOrder) return;
+
+    // Optimistic: remove from local signal immediately
+    this.order.update((o) =>
+      o ? { ...o, notes: o.notes.filter((n) => n.id !== noteId) } : null
+    );
+    this.confirmDeleteNoteId.set(null);
+    this.deletingNote.set(true);
+
+    this.ordersApi.deleteNote(orderId, noteId).subscribe({
+      next: (updated) => {
+        this.order.set(updated);
+        this.deletingNote.set(false);
+      },
+      error: (err) => {
+        // Roll back
+        this.order.set(previousOrder);
+        this.deletingNote.set(false);
+        this.orderError.set(this.extractErrorMessage(err) ?? 'No se pudo eliminar la nota.');
       },
     });
   }

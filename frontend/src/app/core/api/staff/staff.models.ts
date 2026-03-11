@@ -51,13 +51,23 @@ export interface OrderItemResponse {
 
 /**
  * A single staff-written note attached to an order.
- * Notes are append-only and sorted oldest-first by the backend.
+ * Notes are sorted oldest-first by the backend.
+ *
+ * Edit audit fields:
+ * - `originalNote`: the text before the very first edit; null if never edited.
+ * - `editedAt`:     ISO-8601 timestamp of the most recent edit; null if never edited.
  */
 export interface OrderNoteResponse {
   id: number;
   note: string;
   authorRole: string | null;
   createdAt: string; // ISO-8601
+
+  /** Original text before first edit. null if note was never edited. */
+  originalNote: string | null;
+
+  /** Timestamp of most recent edit. null if note was never edited. */
+  editedAt: string | null; // ISO-8601
 }
 
 export interface OrderResponse {
@@ -113,5 +123,9 @@ export interface ChangeOrderStatusRequest {
 }
 
 export interface AddOrderNoteRequest {
+  note: string;
+}
+
+export interface UpdateOrderNoteRequest {
   note: string;
 }

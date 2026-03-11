@@ -110,7 +110,13 @@ public class OrderResponse {
     }
 
     /**
-     * Represents a single note attached to an order.
+     * Represents a single staff note attached to an order.
+     *
+     * <p>Edit audit fields:</p>
+     * <ul>
+     *   <li>{@code originalNote} — the text before the very first edit; {@code null} if never edited.</li>
+     *   <li>{@code editedAt} — timestamp of the most recent edit; {@code null} if never edited.</li>
+     * </ul>
      */
     public static class OrderNoteResponse {
 
@@ -118,6 +124,18 @@ public class OrderResponse {
         private String note;
         private String authorRole;
         private Instant createdAt;
+
+        /**
+         * The original text before the first edit. {@code null} if the note has never been edited.
+         * Once set on the backend this value is frozen — it always reflects the first original.
+         */
+        private String originalNote;
+
+        /**
+         * When the note was last edited. {@code null} if the note has never been edited.
+         * Serialised as ISO-8601 by Jackson.
+         */
+        private Instant editedAt;
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
@@ -130,5 +148,11 @@ public class OrderResponse {
 
         public Instant getCreatedAt() { return createdAt; }
         public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+        public String getOriginalNote() { return originalNote; }
+        public void setOriginalNote(String originalNote) { this.originalNote = originalNote; }
+
+        public Instant getEditedAt() { return editedAt; }
+        public void setEditedAt(Instant editedAt) { this.editedAt = editedAt; }
     }
 }
