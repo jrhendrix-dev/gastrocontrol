@@ -27,17 +27,18 @@ export class AuthService {
   private _me = signal<MeResponse | null>(null);
   meSig = this._me;
   loading = signal(false);
+  /** True once the bootstrap attempt has settled (success or failure). */
+  readonly authReady = signal(false);
 
   /** call ONCE at app start */
   bootstrap() {
-    // Attempt refresh using HttpOnly cookie.
-    // If no cookie/session exists -> this will 401 and we just stay logged out.
     return this.refresh().pipe(
       switchMap(() => this.me()),
       catchError(() => {
         this.clearAuthLocal();
         return of(null);
       }),
+      finalize(() => this.authReady.set(true)),  // ← add this line
     );
   }
 

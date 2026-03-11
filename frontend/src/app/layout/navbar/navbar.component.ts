@@ -34,8 +34,8 @@ export class NavbarComponent {
    * If you want this to ALWAYS follow user roles, delete modeSig + toggleModeForDemo()
    * and replace mode() usage with inferredMode().
    */
-  private modeSig = signal<NavMode>('public');
-  mode = computed(() => this.modeSig());
+  private modeSig = signal<NavMode | null>(null); // null = "not manually set"
+  mode = computed<NavMode>(() => this.modeSig() ?? this.inferredMode());
 
   private readonly items: NavItem[] = [
     // Public/customer
@@ -65,7 +65,7 @@ export class NavbarComponent {
    */
   visibleItems = computed<NavItem[]>(() => {
     const inferred = this.inferredMode();
-    const mode = inferred === 'public' ? 'public' : this.modeSig(); // lock down if not staff
+    const mode = inferred === 'public' ? 'public' : this.mode(); // lock down if not staff
     const roles = this.auth.roles();
     const loggedIn = this.auth.loggedIn();
 
@@ -80,9 +80,8 @@ export class NavbarComponent {
   trackItem = (_: number, item: NavItem) => item.route;
 
   toggleModeForDemo() {
-    // Only allow demo toggle if user is staff-capable
     if (this.inferredMode() === 'public') return;
-    this.modeSig.set(this.modeSig() === 'staff' ? 'public' : 'staff');
+    this.modeSig.set(this.mode() === 'staff' ? 'public' : 'staff');
   }
 
   toggleAccountMenu() {

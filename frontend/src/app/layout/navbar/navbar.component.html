@@ -13,7 +13,8 @@
       </a>
 
       <!-- Center links -->
-      <ul class="flex items-center justify-center gap-14 text-[15.5px] font-medium tracking-wide uppercase">
+      <ul *ngIf="auth.authReady()"
+          class="flex items-center justify-center gap-14 text-[15.5px] font-medium tracking-wide uppercase">
         <li *ngFor="let item of items; trackBy: trackItem" class="group relative">
           <a [routerLink]="item.route"
              routerLinkActive="opacity-100"

@@ -9,9 +9,9 @@ import { AuthService } from './core/auth/auth.service';
   template: `<router-outlet />`,
 })
 export class AppComponent {
-  private auth = inject(AuthService);
+//  private auth = inject(AuthService);
 
-  constructor() {
-    this.auth.hydrate();
-  }
+//  constructor() {
+//    this.auth.hydrate();
+//  }
 }
