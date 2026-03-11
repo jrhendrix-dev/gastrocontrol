@@ -1,6 +1,6 @@
 // src/app/core/api/staff/kitchen.models.ts
 
-import { OrderStatus, OrderType, OrderItemResponse } from './staff.models';
+import { OrderNoteResponse, OrderStatus, OrderType, OrderItemResponse } from './staff.models';
 
 /**
  * Represents a single order as displayed on the Kitchen Display System.
@@ -12,19 +12,12 @@ import { OrderStatus, OrderType, OrderItemResponse } from './staff.models';
 export interface KitchenOrderResponse {
   id: number;
   type: OrderType;
-
-  /** Dining table label (e.g. "T5"). Present only for DINE_IN orders. */
   tableId: number | null;
-
   status: OrderStatus;
   totalCents: number;
-  createdAt: string; // ISO-8601 string from backend
+  createdAt: string;
   items: OrderItemResponse[];
-
-  /** Pickup customer name — present for TAKE_AWAY orders. */
   pickup?: { name: string | null; phone: string | null; notes: string | null } | null;
-
-  /** Delivery info — present for DELIVERY orders. */
   delivery?: {
     name: string | null;
     phone: string | null;
@@ -32,6 +25,9 @@ export interface KitchenOrderResponse {
     city: string | null;
     notes: string | null;
   } | null;
+
+  /** Staff-written operational notes, sorted oldest-first. Never null. */
+  notes: OrderNoteResponse[];
 }
 
 /**

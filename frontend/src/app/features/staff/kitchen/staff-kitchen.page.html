@@ -177,19 +177,24 @@
           </li>
         </ul>
 
-        <!-- Delivery notes (if any) -->
+        <!-- Customer snapshot note (delivery/pickup instructions) -->
         <div
-          *ngIf="order.delivery?.notes"
-          class="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"
+          *ngIf="order.delivery?.notes || order.pickup?.notes"
+          class="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"
         >
-          📝 {{ order.delivery?.notes }}
+          📋 {{ order.delivery?.notes || order.pickup?.notes }}
         </div>
-        <div
-          *ngIf="order.pickup?.notes"
-          class="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"
-        >
-          📝 {{ order.pickup?.notes }}
-        </div>
+
+        <!-- Staff operational notes from order_notes table -->
+        <ng-container *ngIf="order.notes?.length">
+          <div
+            *ngFor="let n of order.notes"
+            class="mb-2 rounded-lg bg-yellow-50 px-3 py-2 text-xs text-yellow-900"
+          >
+            📝 {{ n.note }}
+            <span class="ml-1 text-yellow-600/70">· {{ n.authorRole }}</span>
+          </div>
+        </ng-container>
 
         <!-- Advance button -->
         <button
