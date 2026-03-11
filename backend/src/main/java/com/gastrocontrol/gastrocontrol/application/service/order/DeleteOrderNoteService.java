@@ -6,6 +6,7 @@ import com.gastrocontrol.gastrocontrol.common.exception.NotFoundException;
 import com.gastrocontrol.gastrocontrol.common.exception.ValidationException;
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
 import com.gastrocontrol.gastrocontrol.dto.staff.OrderResponse;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderNoteJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderNoteRepository;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderRepository;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -90,10 +92,21 @@ public class DeleteOrderNoteService {
         }
 
         orderNoteRepository.delete(note);
+        // flush() forces the DELETE to hit the DB immediately so the next query
+        // does not read from Hibernate's first-level (session) cache.
+        orderNoteRepository.flush();
 
-        return StaffOrderMapper.toResponse(
-                orderRepository.findHydratedById(orderId)
-                        .orElseThrow(() -> new NotFoundException("Order not found: " + orderId))
-        );
+        // Reload the order and manually replace its notes collection with a fresh
+        // query from the repository. This bypasses Hibernate's stale cached entity
+        // — the same pattern used in AddOrderNoteService.
+        OrderJpaEntity order = orderRepository.findHydratedById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
+
+        List<OrderNoteJpaEntity> freshNotes =
+                orderNoteRepository.findByOrder_IdOrderByCreatedAtAsc(orderId);
+        order.getNotes().clear();
+        order.getNotes().addAll(freshNotes);
+
+        return StaffOrderMapper.toResponse(order);
     }
 }
