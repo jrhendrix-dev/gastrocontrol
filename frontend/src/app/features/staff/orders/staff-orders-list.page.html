@@ -1,0 +1,320 @@
+<!-- src/app/features/staff/orders/staff-orders-list.page.html -->
+<div class="mx-auto max-w-7xl px-4 py-8">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold tracking-tight" style="color: var(--gc-ink);">Pedidos</h1>
+    <p class="mt-1 text-sm" style="color: var(--gc-ink); opacity: 0.55;">
+      Historial y estado de todos los pedidos · {{ totalItems() }} resultado(s)
+    </p>
+  </div>
+
+  <!-- ── Filters ─────────────────────────────────────────────────────────── -->
+  <div class="gc-panel mb-6 space-y-4 p-4">
+
+    <!-- Status chips -->
+    <div>
+      <div class="mb-2 text-xs font-semibold uppercase tracking-widest" style="color: var(--gc-ink); opacity: 0.45;">
+        Estado
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button
+          *ngFor="let s of allStatuses; trackBy: trackStatus"
+          type="button"
+          class="rounded-full border px-3 py-1 text-xs font-semibold transition-all"
+          [ngClass]="selectedStatuses().has(s)
+            ? 'border-transparent ' + statusClass(s)
+            : 'border-black/15 bg-white/60 text-black/55 hover:bg-white/80'"
+          (click)="toggleStatus(s)"
+        >
+          {{ statusLabel(s) }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Type + Date row -->
+    <div class="flex flex-wrap items-end gap-4">
+
+      <!-- Type buttons -->
+      <div>
+        <div class="mb-2 text-xs font-semibold uppercase tracking-widest" style="color: var(--gc-ink); opacity: 0.45;">
+          Tipo
+        </div>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            class="rounded-full border px-3 py-1 text-xs font-semibold transition-all"
+            [ngClass]="selectedType() === null
+              ? 'border-transparent bg-black/10 text-black/70'
+              : 'border-black/15 bg-white/60 text-black/55 hover:bg-white/80'"
+            (click)="selectType(null)"
+          >
+            Todos
+          </button>
+          <button
+            *ngFor="let t of allTypes; trackBy: trackType"
+            type="button"
+            class="rounded-full border px-3 py-1 text-xs font-semibold transition-all"
+            [ngClass]="selectedType() === t
+              ? 'border-transparent ' + typeClass(t)
+              : 'border-black/15 bg-white/60 text-black/55 hover:bg-white/80'"
+            (click)="selectType(t)"
+          >
+            {{ typeLabel(t) }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Date range -->
+      <div class="flex items-end gap-2">
+        <div>
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-widest" style="opacity: 0.45;">
+            Desde
+          </label>
+          <input
+            type="date"
+            class="gc-input text-sm"
+            [ngModel]="dateFrom()"
+            (ngModelChange)="dateFrom.set($event); onDateChange()"
+          />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-widest" style="opacity: 0.45;">
+            Hasta
+          </label>
+          <input
+            type="date"
+            class="gc-input text-sm"
+            [ngModel]="dateTo()"
+            (ngModelChange)="dateTo.set($event); onDateChange()"
+          />
+        </div>
+      </div>
+
+      <!-- Clear filters -->
+      <button
+        *ngIf="hasActiveFilters()"
+        type="button"
+        class="btn btn-outline btn-sm self-end"
+        (click)="clearFilters()"
+      >
+        Limpiar filtros
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ── Error ────────────────────────────────────────────────────────────── -->
+  <div
+    *ngIf="error()"
+    class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+  >
+    {{ error() }}
+  </div>
+
+  <!-- ── Loading skeleton ─────────────────────────────────────────────────── -->
+  <div *ngIf="loading() && orders().length === 0" class="space-y-3">
+    <div
+      *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"
+      class="h-14 animate-pulse rounded-xl"
+      style="background: rgba(0,0,0,0.06);"
+    ></div>
+  </div>
+
+  <!-- ── Empty state ───────────────────────────────────────────────────────── -->
+  <div
+    *ngIf="!loading() && orders().length === 0 && !error()"
+    class="flex flex-col items-center justify-center gap-3 py-20 text-center"
+  >
+    <div class="text-5xl">🧾</div>
+    <p class="text-lg font-semibold" style="color: var(--gc-ink); opacity: 0.6;">Sin pedidos</p>
+    <p class="text-sm" style="color: var(--gc-ink); opacity: 0.4;">
+      No hay pedidos que coincidan con los filtros activos.
+    </p>
+  </div>
+
+  <!-- ── Orders table ──────────────────────────────────────────────────────── -->
+  <div *ngIf="orders().length > 0" class="space-y-2">
+
+    <!-- Column headers (desktop) -->
+    <div class="hidden grid-cols-[56px_90px_90px_1fr_100px_110px_32px] gap-4 px-4 py-1 text-xs font-semibold uppercase tracking-widest md:grid"
+         style="color: var(--gc-ink); opacity: 0.4;">
+      <span>#</span>
+      <span>Estado</span>
+      <span>Tipo</span>
+      <span>Cliente / Mesa</span>
+      <span class="text-right">Total</span>
+      <span class="text-right">Fecha</span>
+      <span></span>
+    </div>
+
+    <!-- Rows -->
+    <div
+      *ngFor="let order of orders(); trackBy: trackOrder"
+      class="rounded-2xl border transition-all duration-200"
+      [ngClass]="expandedOrderId() === order.id
+        ? 'border-black/20 shadow-md'
+        : 'border-black/8 hover:border-black/15 hover:shadow-sm'"
+      style="background: var(--gc-surface);"
+    >
+      <!-- Row summary (always visible) -->
+      <button
+        type="button"
+        class="w-full cursor-pointer rounded-2xl px-4 py-3 text-left"
+        (click)="toggleExpand(order.id)"
+        [attr.aria-expanded]="expandedOrderId() === order.id"
+      >
+        <div class="grid grid-cols-[1fr_auto] items-center gap-2 md:grid-cols-[56px_90px_90px_1fr_100px_110px_32px] md:gap-4">
+
+          <!-- ID -->
+          <span class="font-mono text-sm font-bold" style="color: var(--gc-ink);">#{{ order.id }}</span>
+
+          <!-- Status badge -->
+          <span
+            class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+            [ngClass]="statusClass(order.status)"
+          >
+            {{ statusLabel(order.status) }}
+          </span>
+
+          <!-- Type badge -->
+          <span
+            class="hidden items-center rounded-full px-2 py-0.5 text-xs font-semibold md:inline-flex"
+            [ngClass]="typeClass(order.type)"
+          >
+            {{ typeLabel(order.type) }}
+          </span>
+
+          <!-- Customer / table -->
+          <span class="truncate text-sm font-medium" style="color: var(--gc-ink);">
+            {{ displayName(order) }}
+          </span>
+
+          <!-- Total -->
+          <span class="text-right text-sm font-semibold gc-money" style="color: var(--gc-ink);">
+            {{ (order.totalCents / 100) | currency:'EUR':'symbol':'1.2-2' }}
+          </span>
+
+          <!-- Created at -->
+          <span class="hidden text-right text-xs md:block" style="color: var(--gc-ink); opacity: 0.5;">
+            {{ order.createdAt | date:'dd/MM/yy HH:mm' }}
+          </span>
+
+          <!-- Expand chevron -->
+          <span
+            class="flex h-6 w-6 items-center justify-center rounded-full transition-transform duration-200"
+            [ngClass]="expandedOrderId() === order.id ? 'rotate-180' : ''"
+            style="opacity: 0.4;"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </span>
+
+        </div>
+      </button>
+
+      <!-- ── Expanded detail panel ────────────────────────────────────────── -->
+      <div
+        *ngIf="expandedOrderId() === order.id"
+        class="border-t px-4 pb-4 pt-3"
+        style="border-color: rgba(0,0,0,0.07);"
+      >
+        <div class="grid gap-6 md:grid-cols-2">
+
+          <!-- Items -->
+          <div>
+            <div class="mb-2 text-xs font-semibold uppercase tracking-widest" style="opacity: 0.45;">
+              Líneas ({{ order.items.length }})
+            </div>
+            <div class="space-y-1">
+              <div
+                *ngFor="let item of order.items; trackBy: trackItem"
+                class="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm"
+                style="background: rgba(0,0,0,0.04);"
+              >
+                <span class="font-medium">{{ item.name }}</span>
+                <span class="flex items-center gap-3 text-xs" style="opacity: 0.6;">
+                  <span>×{{ item.quantity }}</span>
+                  <span class="gc-money">
+                    {{ (item.unitPriceCents / 100) | currency:'EUR':'symbol':'1.2-2' }}
+                  </span>
+                </span>
+              </div>
+              <div *ngIf="!order.items.length" class="text-sm" style="opacity: 0.45;">
+                Sin líneas.
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes + meta -->
+          <div class="space-y-4">
+
+            <!-- Notes -->
+            <div *ngIf="order.notes.length">
+              <div class="mb-2 text-xs font-semibold uppercase tracking-widest" style="opacity: 0.45;">
+                Notas ({{ order.notes.length }})
+              </div>
+              <div class="space-y-1">
+                <div
+                  *ngFor="let n of order.notes; trackBy: trackNote"
+                  class="rounded-lg px-3 py-2 text-xs"
+                  style="background: rgba(230,184,92,0.12); border: 1px solid rgba(230,184,92,0.3);"
+                >
+                  📝 {{ n.note }}
+                  <span class="ml-1" style="opacity: 0.5;">· {{ n.authorRole }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Meta -->
+            <div class="text-xs space-y-1" style="opacity: 0.5;">
+              <div *ngIf="order.type === 'DINE_IN' && order.tableId">
+                Mesa ID: {{ order.tableId }}
+              </div>
+              <div *ngIf="order.type === 'TAKE_AWAY' && order.pickup?.phone">
+                Tel: {{ order.pickup!.phone }}
+              </div>
+              <div *ngIf="order.type === 'DELIVERY' && order.delivery?.addressLine1">
+                Dir: {{ order.delivery!.addressLine1 }}, {{ order.delivery!.city }}
+              </div>
+              <div>Creado: {{ order.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ── Pagination ────────────────────────────────────────────────────────── -->
+  <div
+    *ngIf="totalPages() > 1"
+    class="mt-6 flex items-center justify-between"
+  >
+    <button
+      type="button"
+      class="btn btn-outline btn-sm"
+      [disabled]="isFirst() || loading()"
+      (click)="prevPage()"
+    >
+      ← Anterior
+    </button>
+
+    <span class="text-sm" style="color: var(--gc-ink); opacity: 0.55;">
+      Página {{ currentPage() + 1 }} de {{ totalPages() }}
+    </span>
+
+    <button
+      type="button"
+      class="btn btn-outline btn-sm"
+      [disabled]="isLast() || loading()"
+      (click)="nextPage()"
+    >
+      Siguiente →
+    </button>
+  </div>
+
+</div>

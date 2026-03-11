@@ -35,8 +35,16 @@ export const routes: Routes = [
           ),
       },
 
+      // Staff – Orders List (lazy-loaded: only kitchen staff need it)
+      {
+        path: 'staff/orders',
+        loadComponent: () =>
+          import('./features/staff/orders/staff-orders-list.page').then(
+            (m) => m.StaffOrdersListPage
+          ),
+      },
+
       // Placeholders (to be replaced in future phases)
-      { path: 'staff/orders', component: PlaceholderPage },
       { path: 'admin', component: PlaceholderPage },
       { path: 'menu', component: PlaceholderPage },
     ],
