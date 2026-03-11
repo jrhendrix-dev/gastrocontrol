@@ -4,6 +4,7 @@ package com.gastrocontrol.gastrocontrol.application.service.order;
 import com.gastrocontrol.gastrocontrol.common.exception.NotFoundException;
 import com.gastrocontrol.gastrocontrol.common.exception.ValidationException;
 import com.gastrocontrol.gastrocontrol.dto.staff.OrderResponse;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.OrderNoteJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderNoteRepository;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.OrderRepository;
@@ -11,6 +12,7 @@ import com.gastrocontrol.gastrocontrol.mapper.order.StaffOrderMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -64,16 +66,18 @@ public class AddOrderNoteService {
             throw new ValidationException(Map.of("note", "Note must not exceed 500 characters"));
         }
 
-        var order = orderRepository.findHydratedById(orderId)
+        OrderJpaEntity order = orderRepository.findHydratedById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
 
-        var note = new OrderNoteJpaEntity(order, noteText.strip(), authorRole);
+        OrderNoteJpaEntity note = new OrderNoteJpaEntity(order, noteText.strip(), authorRole);
         orderNoteRepository.save(note);
 
-        // Return a fresh hydrated response so the caller sees the updated notes list
-        return StaffOrderMapper.toResponse(
-                orderRepository.findHydratedById(orderId)
-                        .orElseThrow(() -> new NotFoundException("Order not found: " + orderId))
-        );
+        // Reload notes separately — avoids MultipleBagFetchException from fetching
+        // two @OneToMany List collections (items + notes) in a single JOIN query.
+        List<OrderNoteJpaEntity> notes = orderNoteRepository.findByOrder_IdOrderByCreatedAtAsc(orderId);
+        order.getNotes().clear();
+        order.getNotes().addAll(notes);
+
+        return StaffOrderMapper.toResponse(order);
     }
 }

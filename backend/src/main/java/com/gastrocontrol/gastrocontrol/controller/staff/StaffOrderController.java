@@ -4,13 +4,7 @@ package com.gastrocontrol.gastrocontrol.controller.staff;
 import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
 import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.order.OrderDto;
-import com.gastrocontrol.gastrocontrol.dto.staff.ChangeOrderStatusRequest;
-import com.gastrocontrol.gastrocontrol.dto.staff.AddOrderItemRequest;
-import com.gastrocontrol.gastrocontrol.dto.staff.UpdateOrderItemRequest;
-import com.gastrocontrol.gastrocontrol.dto.staff.CreateDraftOrderRequest;
-import com.gastrocontrol.gastrocontrol.dto.staff.CreateOrderRequest;
-import com.gastrocontrol.gastrocontrol.dto.staff.OrderResponse;
-import com.gastrocontrol.gastrocontrol.dto.staff.ReopenOrderRequest;
+import com.gastrocontrol.gastrocontrol.dto.staff.*;
 import com.gastrocontrol.gastrocontrol.application.service.order.*;
 import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.common.PagedResponse;
@@ -23,7 +17,6 @@ import com.gastrocontrol.gastrocontrol.application.service.order.CancelOrderServ
 import com.gastrocontrol.gastrocontrol.application.service.order.ProcessOrderAdjustmentService;
 import com.gastrocontrol.gastrocontrol.application.service.order.ProcessOrderAdjustmentCommand;
 import com.gastrocontrol.gastrocontrol.application.service.order.ProcessOrderAdjustmentResult;
-import com.gastrocontrol.gastrocontrol.dto.staff.ProcessAdjustmentRequest;
 
 
 import jakarta.validation.Valid;
@@ -342,6 +335,26 @@ public class StaffOrderController {
         );
 
         return ResponseEntity.ok(ApiResponse.ok(msg, result));
+    }
+
+    /**
+     * Appends a free-text note to an existing order.
+     *
+     * <p>Notes can be added regardless of order status — staff must always be
+     * able to communicate kitchen instructions or allergy warnings.</p>
+     *
+     * @param orderId the order to annotate
+     * @param request the note content
+     * @return the updated order including the new note
+     */
+    @PostMapping("/{orderId}/notes")
+    public ResponseEntity<OrderResponse> addNote(
+            @PathVariable Long orderId,
+            @Valid @RequestBody AddNoteRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                addOrderNoteService.handle(orderId, request.getNote(), "STAFF")
+        );
     }
 
 
