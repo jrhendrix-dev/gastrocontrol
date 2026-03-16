@@ -5,8 +5,11 @@ import { StaffTablesApi } from '@app/app/core/api/staff/staff-tables.api';
 import { StaffOrdersApi } from '@app/app/core/api/staff/staff-orders.api';
 import { StaffProductsApi } from '@app/app/core/api/staff/staff-products.api';
 import { CatalogApi } from '@app/app/core/api/catalog/catalog.api';
+import { StaffPaymentApi } from '@app/app/core/api/staff/staff-payment.api';
+import { PaymentModalComponent, PaymentConfirmedEvent } from './payment-modal/payment-modal.component';
 import { DiningTableResponse, OrderResponse, ProductResponse } from '@app/app/core/api/staff/staff.models';
 import { CatalogCategoryDto, CatalogProductDto } from '@app/app/core/api/catalog/catalog.models';
+
 
 
 /**
@@ -21,7 +24,7 @@ type CategoryVm = { id: number | null; name: string };
 @Component({
   standalone: true,
   selector: 'gc-staff-pos-page',
-  imports: [CommonModule, FormsModule, NgIf, NgFor, CurrencyPipe],
+  imports: [CommonModule, FormsModule, NgIf, NgFor, CurrencyPipe, PaymentModalComponent],
   templateUrl: './staff-pos.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -30,6 +33,7 @@ export class StaffPosPage implements OnInit {
   private readonly ordersApi = inject(StaffOrdersApi);
   private readonly productsApi = inject(StaffProductsApi);
   private readonly catalogApi = inject(CatalogApi);
+  private readonly paymentApi = inject(StaffPaymentApi);
 
   loadingTables = signal(false);
   tables = signal<DiningTableResponse[]>([]);
@@ -39,6 +43,12 @@ export class StaffPosPage implements OnInit {
   currentTable = signal<DiningTableResponse | null>(null);
   order = signal<OrderResponse | null>(null);
   orderError = signal<string | null>(null);
+  /** Controls visibility of the payment confirmation modal. */
+  showPaymentModal = signal(false);
+  /** Whether a payment + finalize request is currently in-flight. */
+  paymentLoading = signal(false);
+  /** Error message from the last payment attempt, or null. */
+  paymentError = signal<string | null>(null);
   newNoteValue = '';              // bound to the textarea via [(ngModel)]
   addingNote = signal(false);
   /**
@@ -535,13 +545,58 @@ export class StaffPosPage implements OnInit {
     });
   }
 
-
-
-
   canStartOrEdit = computed(() => {
     const o = this.order();
     if (!o) return true; // allow opening draft by adding first item
     return o.status === 'DRAFT' || o.status === 'PENDING';
   });
+
+  /** True when the current order is in SERVED state — ready to be paid. */
+  isServed = computed(() => this.order()?.status === 'SERVED');
+
+
+  /**
+   * Opens the payment modal. Only callable when the order is SERVED.
+   */
+  openPaymentModal(): void {
+    if (!this.isServed()) return;
+    this.paymentError.set(null);
+    this.showPaymentModal.set(true);
+  }
+
+  /**
+   * Handles the {@code confirmed} event from the payment modal.
+   *
+   * Runs the two-step payment + finalize flow. On success the modal is
+   * closed, the order signal is refreshed, and the table list is updated
+   * so the freed table reflects its new state immediately.
+   *
+   * @param event the payment method and optional reference from the modal
+   */
+  onPaymentConfirmed(event: PaymentConfirmedEvent): void {
+    const o = this.order();
+    if (!o) return;
+
+    // Build the reference label: "Tarjeta · 1234" or just "Efectivo"
+    const reference = event.reference
+      ? `${event.method} · ${event.reference}`
+      : event.method;
+
+    this.paymentLoading.set(true);
+    this.paymentError.set(null);
+
+    this.paymentApi.confirmAndFinalize(o.id, reference).subscribe({
+      next: (finished) => {
+        this.order.set(finished);
+        this.paymentLoading.set(false);
+        this.showPaymentModal.set(false);
+        this.refreshTables();
+      },
+      error: (err) => {
+        this.paymentError.set(this.extractErrorMessage(err) ?? 'No se pudo procesar el pago.');
+        this.paymentLoading.set(false);
+      },
+    });
+  }
 
 }

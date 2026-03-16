@@ -128,6 +128,16 @@
             >
               Enviar a cocina
             </button>
+
+            <button
+              class="btn btn-success"
+              *ngIf="isServed()"
+              (click)="openPaymentModal()"
+              type="button"
+              title="El pedido está listo para cobrar"
+            >
+              💳 Cobrar
+            </button>
           </div>
         </div>
 
@@ -151,7 +161,7 @@
             <div class="mb-3 flex items-center justify-between">
               <div class="gc-section-title text-base">Líneas</div>
               <div class="text-xs text-black/50" *ngIf="order() as o">
-                {{ o.items?.length || 0 }} item(s)
+                {{ o.items.length }} item(s)
               </div>
             </div>
 
@@ -462,4 +472,12 @@
       </ng-template>
     </div>
   </div>
+  <gc-payment-modal
+    [open]="showPaymentModal()"
+    [totalCents]="order()?.totalCents ?? 0"
+    [loading]="paymentLoading()"
+    [error]="paymentError()"
+    (confirmed)="onPaymentConfirmed($event)"
+    (closed)="showPaymentModal.set(false)"
+  />
 </div>

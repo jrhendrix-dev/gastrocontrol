@@ -1,0 +1,149 @@
+<!-- src/app/features/staff/pos/payment-modal/payment-modal.component.html -->
+
+<!-- Backdrop -->
+<div
+  *ngIf="open"
+  class="fixed inset-0 z-[8000] flex items-center justify-center p-4"
+  (click)="dismiss()"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="payment-modal-title"
+>
+  <!-- Dark overlay -->
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+
+  <!-- Modal panel — stop click propagation so inner clicks don't close modal -->
+  <div
+    class="relative z-10 w-full max-w-sm rounded-2xl shadow-2xl"
+    style="background: var(--gc-surface); border: 1px solid rgba(0,0,0,0.08);"
+    (click)="$event.stopPropagation()"
+  >
+
+    <!-- Header -->
+    <div
+      class="flex items-center justify-between rounded-t-2xl px-5 py-4"
+      style="background: var(--gc-brand); color: var(--gc-surface);"
+    >
+      <h2 id="payment-modal-title" class="text-base font-bold tracking-tight">
+        Cobrar pedido
+      </h2>
+      <button
+        type="button"
+        class="flex h-7 w-7 items-center justify-center rounded-full opacity-70 transition hover:opacity-100"
+        style="background: rgba(255,255,255,0.15);"
+        (click)="dismiss()"
+        [disabled]="loading"
+        aria-label="Cerrar"
+      >
+        ✕
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="px-5 py-5 space-y-5">
+
+      <!-- Total -->
+      <div
+        class="flex items-center justify-between rounded-xl px-4 py-3"
+        style="background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06);"
+      >
+        <span class="text-sm font-medium" style="color: var(--gc-ink); opacity: 0.6;">Total a cobrar</span>
+        <span class="text-xl font-bold gc-money" style="color: var(--gc-ink);">
+          {{ (totalCents / 100) | currency:'EUR':'symbol':'1.2-2' }}
+        </span>
+      </div>
+
+      <!-- Method selection -->
+      <div>
+        <div
+          class="mb-2 text-xs font-semibold uppercase tracking-widest"
+          style="color: var(--gc-ink); opacity: 0.45;"
+        >
+          Método de pago
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <button
+            *ngFor="let m of methods; trackBy: trackMethod"
+            type="button"
+            class="flex flex-col items-center gap-1.5 rounded-xl border-2 px-2 py-3 text-center text-xs font-semibold transition-all duration-150"
+            [ngClass]="selectedMethod() === m
+              ? 'border-transparent shadow-sm'
+              : 'border-transparent hover:border-black/10'"
+            [style.background]="selectedMethod() === m ? 'var(--gc-brand)' : 'rgba(0,0,0,0.04)'"
+            [style.color]="selectedMethod() === m ? 'var(--gc-surface)' : 'var(--gc-ink)'"
+            (click)="selectMethod(m)"
+            [disabled]="loading"
+          >
+            <span class="text-xl">{{ methodIcon[m] }}</span>
+            <span>{{ m }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Optional reference field (shown for all methods) -->
+      <div *ngIf="selectedMethod()">
+        <label
+          class="mb-1 block text-xs font-semibold uppercase tracking-widest"
+          style="color: var(--gc-ink); opacity: 0.45;"
+          for="payment-ref"
+        >
+          Referencia
+        </label>
+        <input
+          id="payment-ref"
+          type="text"
+          class="gc-input w-full"
+          [placeholder]="referencePlaceholder()"
+          [(ngModel)]="referenceValue"
+          [disabled]="loading"
+          maxlength="120"
+          autocomplete="off"
+        />
+      </div>
+
+      <!-- Error -->
+      <div
+        *ngIf="error"
+        class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+      >
+        {{ error }}
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div
+      class="flex gap-2 rounded-b-2xl border-t px-5 py-4"
+      style="border-color: rgba(0,0,0,0.07);"
+    >
+      <button
+        type="button"
+        class="btn btn-outline flex-1"
+        (click)="dismiss()"
+        [disabled]="loading"
+      >
+        Cancelar
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-primary flex-[2] flex items-center justify-center gap-2"
+        [disabled]="!canConfirm()"
+        (click)="confirm()"
+      >
+        <svg
+          *ngIf="loading"
+          class="h-4 w-4 animate-spin"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+        {{ loading ? 'Procesando...' : 'Confirmar pago' }}
+      </button>
+    </div>
+
+  </div>
+</div>

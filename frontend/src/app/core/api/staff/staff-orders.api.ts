@@ -104,4 +104,21 @@ export class StaffOrdersApi {
   deleteNote(orderId: number, noteId: number): Observable<OrderResponse> {
     return this.http.delete<OrderResponse>(`/api/staff/orders/${orderId}/notes/${noteId}`);
   }
+
+  /**
+   * Changes the status of an order.
+   *
+   * <p>Used by the payment flow to finalize a SERVED order (SERVED → FINISHED).
+   * The backend enforces all transition rules and the payment gate — a 422 is
+   * returned if the payment is not yet SUCCEEDED.</p>
+   *
+   * @param orderId   the order to transition
+   * @param newStatus the target status string
+   * @returns the updated {@link OrderResponse}
+   */
+  changeStatus(orderId: number, newStatus: string): Observable<OrderResponse> {
+    return this.http
+      .patch<ApiResponse<OrderResponse>>(`/api/staff/orders/${orderId}/status`, { newStatus })
+      .pipe(map((res) => res.data as OrderResponse));
+  }
 }
