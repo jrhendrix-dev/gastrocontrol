@@ -70,6 +70,31 @@ public interface OrderRepository extends JpaRepository<OrderJpaEntity, Long>, Jp
     );
 
     /**
+     * Returns {@code true} if the given table has at least one order in one
+     * of the provided statuses.
+     *
+     * <p>Used by {@code ManagerTableService} to block deletion of tables that
+     * still have active orders on them.</p>
+     *
+     * @param tableId  the dining table id to check
+     * @param type     the order type (always DINE_IN for table orders)
+     * @param statuses the set of statuses considered "active"
+     * @return true if at least one matching order exists
+     */
+    @Query("""
+            select count(o) > 0
+            from OrderJpaEntity o
+            where o.diningTable.id = :tableId
+              and o.type = :type
+              and o.status in :statuses
+            """)
+    boolean hasActiveOrderForTable(
+            @Param("tableId") Long tableId,
+            @Param("type") OrderType type,
+            @Param("statuses") java.util.Set<OrderStatus> statuses
+    );
+
+    /**
      * Fast existence check for "table already has an active ticket" rules.
      */
     boolean existsByTypeAndDiningTable_IdAndStatusIn(OrderType type, Long diningTableId, Collection<OrderStatus> statuses);
