@@ -1,35 +1,59 @@
+<!-- src/app/features/auth/login.page.html -->
 <section class="mx-auto max-w-md px-4 py-10">
-  <a routerLink="/" class="inline-flex items-center gap-2 text-sm font-semibold opacity-90 hover:opacity-100">
+  <a routerLink="/"
+     class="inline-flex items-center gap-2 text-sm font-semibold opacity-90 hover:opacity-100">
     ← Volver al inicio
   </a>
-  <div class="rounded-2xl p-6 shadow"
+
+  <div class="mt-6 rounded-2xl p-6 shadow"
        style="background: var(--gc-surface); color: var(--gc-ink); border: 1px solid rgba(0,0,0,0.06);">
-    <h2 class="text-2xl font-semibold">Login</h2>
+
+    <h2 class="text-2xl font-semibold">Iniciar sesión</h2>
 
     <form class="mt-6 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+
       <div>
         <label class="text-sm font-medium">Email</label>
-        <input class="mt-1 w-full rounded-md border px-3 py-2"
-               style="border-color: rgba(0,0,0,0.15);"
-               formControlName="email" type="email" autocomplete="email">
-        <p class="mt-1 text-sm text-rose-600" *ngIf="form.get('email')?.errors?.['server']">
-          {{ form.get('email')?.errors?.['server'] }}
-        </p>
+        <input class="gc-input mt-1"
+               formControlName="email"
+               type="email"
+               autocomplete="email"
+               placeholder="tu@email.com" />
       </div>
 
       <div>
         <label class="text-sm font-medium">Password</label>
-        <input class="mt-1 w-full rounded-md border px-3 py-2"
-               style="border-color: rgba(0,0,0,0.15);"
-               formControlName="password" type="password" autocomplete="current-password">
-        <p class="mt-1 text-sm text-rose-600" *ngIf="form.get('password')?.errors?.['server']">
-          {{ form.get('password')?.errors?.['server'] }}
-        </p>
+        <input class="gc-input mt-1"
+               formControlName="password"
+               type="password"
+               autocomplete="current-password"
+               placeholder="••••••••" />
       </div>
 
-      <button class="btn btn-primary w-full" [disabled]="auth.loading() || form.invalid">
-        {{ auth.loading() ? 'Entrando...' : 'Entrar' }}
+      <!-- Inline login error -->
+      @if (loginError()) {
+        <div class="flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm"
+             style="background: rgba(220,38,38,0.06); border-color: rgba(220,38,38,0.2); color: #b91c1c;">
+          <span class="mt-0.5 shrink-0">⚠</span>
+          <span>{{ loginError() }}</span>
+        </div>
+      }
+
+      <button class="btn btn-primary w-full"
+              type="submit"
+              [disabled]="auth.loading() || form.invalid">
+        {{ auth.loading() ? 'Entrando…' : 'Entrar' }}
       </button>
+
+      <p class="text-center text-sm" style="color: var(--gc-ink-muted);">
+        ¿Olvidaste tu contraseña?
+        <a routerLink="/forgot-password"
+           class="font-medium underline underline-offset-2"
+           style="color: var(--gc-ink);">
+          Recupérala aquí
+        </a>
+      </p>
+
     </form>
   </div>
 </section>

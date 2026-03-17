@@ -1,13 +1,23 @@
+// src/app/features/auth/login.page.ts
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../core/auth/auth.service';
-import { FormErrorMapper } from '@app/app/core/error/form-error/form-error-mapper.service';
-import { ToastService } from '../../core/ui/toast/toast.service';
 
+/**
+ * Login page.
+ *
+ * Error handling is intentionally kept simple and login-specific:
+ * - Wrong credentials   → inline error below the form
+ * - Deactivated account → inline error with contact-admin message
+ * - Unexpected error    → generic inline message
+ *
+ * We intentionally do NOT use FormErrorMapper here because login errors
+ * are authentication outcomes, not field-level validation errors.
+ */
 @Component({
   standalone: true,
   selector: 'gc-login-page',
@@ -15,42 +25,59 @@ import { ToastService } from '../../core/ui/toast/toast.service';
   templateUrl: './login.page.html',
 })
 export class LoginPage {
-  private fb = inject(FormBuilder);
-  auth = inject(AuthService);
+  private fb     = inject(FormBuilder);
+  auth           = inject(AuthService);
   private router = inject(Router);
-  private route = inject(ActivatedRoute);
-  private mapper = inject(FormErrorMapper);
-  private toast = inject(ToastService);
+  private route  = inject(ActivatedRoute);
+
+  /** Inline error message shown below the form fields. */
+  readonly loginError = signal<string | null>(null);
 
   form = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
+    email:    ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
   });
 
   private getReturnUrl(): string {
     const raw = (this.route.snapshot.queryParamMap.get('returnUrl') ?? '').trim();
-    // prevent open redirects; only allow internal paths
     if (!raw.startsWith('/')) return '/';
     if (raw.startsWith('//')) return '/';
     return raw;
   }
 
-  submit() {
+  submit(): void {
     if (this.form.invalid) return;
+    this.loginError.set(null);
 
     this.auth.login(this.form.getRawValue() as any).subscribe({
-      next: () => {
-        this.toast.success('Login correcto');
-        void this.router.navigateByUrl(this.getReturnUrl());
-      },
-      error: (err: HttpErrorResponse) => {
-        const map = this.mapper.applyToForm(
-          this.form as any,
-          { email: 'email', password: 'password' },
-          err
-        );
-        if (!map.applied) this.mapper.toastFromDetails(map.norm, this.toast, err);
-      },
+      next: () => void this.router.navigateByUrl(this.getReturnUrl()),
+      error: (err: HttpErrorResponse) => this.loginError.set(this.resolveLoginError(err)),
     });
+  }
+
+  /**
+   * Maps a backend error response to a human-readable login message.
+   *
+   * Backend error shapes:
+   *  - credentials key → wrong email/password (VALIDATION_FAILED)
+   *  - account key     → deactivated account  (BUSINESS_RULE_VIOLATION)
+   */
+  private resolveLoginError(err: HttpErrorResponse): string {
+    const inner   = err?.error?.error ?? err?.error ?? {};
+    const details = inner?.details ?? {};
+
+    if (details['account'] || inner?.code === 'BUSINESS_RULE_VIOLATION') {
+      return 'Esta cuenta ha sido desactivada. Contacta con el administrador.';
+    }
+
+    if (details['credentials'] || inner?.code === 'VALIDATION_FAILED') {
+      return 'Email o contraseña incorrectos.';
+    }
+
+    if (err.status === 0) {
+      return 'No se pudo conectar con el servidor. Comprueba tu conexión.';
+    }
+
+    return 'Error al iniciar sesión. Inténtalo de nuevo.';
   }
 }

@@ -9,6 +9,9 @@
   --gc-accent: #E6B85C;       /* brand.gold */
   --gc-surface: #F7F3EA;      /* brand.white */
 
+  --gc-brand-analogous: #1a2717;      /* lighter brand green — tab rows, table headers */
+  --gc-brand-subtle: #234d3a;     /* between muted and strong — optional middle tier */
+
   /* Text colors */
   --gc-ink: #0B241B;          /* main text on light surfaces */
   --gc-ink-muted: rgba(11, 36, 27, 0.70);

@@ -7,10 +7,23 @@ import { PlaceholderPage } from './features/placeholder/placeholder.page';
 import { StaffPosPage } from './features/staff/pos/staff-pos.page';
 import { MePage } from './features/me/pages/me.page';
 import { ConfirmEmailChangePage } from '@app/app/features/me/pages/confirm-email-change.page';
+import { adminGuard } from './features/admin/admin.guard';
 
 export const routes: Routes = [
   // ── Standalone pages (no navbar / shell) ────────────────────────────────
   { path: 'login', component: LoginPage },
+
+  // ── Token-based auth flows (no shell, no auth required) ─────────────────
+  {
+    path: 'set-password',
+    loadComponent: () =>
+      import('./features/auth/set-password.page').then(m => m.SetPasswordPage),
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./features/auth/reset-password.page').then(m => m.ResetPasswordPage),
+  },
 
   // ── Shell-wrapped pages ──────────────────────────────────────────────────
   {
@@ -26,7 +39,7 @@ export const routes: Routes = [
       // Staff – POS (eager, used constantly)
       { path: 'staff/pos', component: StaffPosPage },
 
-      // Staff – Kitchen Display (lazy-loaded: only kitchen staff need it)
+      // Staff – Kitchen Display (lazy-loaded)
       {
         path: 'staff/kitchen',
         loadComponent: () =>
@@ -35,7 +48,7 @@ export const routes: Routes = [
           ),
       },
 
-      // Staff – Orders List (lazy-loaded: only kitchen staff need it)
+      // Staff – Orders List (lazy-loaded)
       {
         path: 'staff/orders',
         loadComponent: () =>
@@ -44,8 +57,17 @@ export const routes: Routes = [
           ),
       },
 
-      // Placeholders (to be replaced in future phases)
-      { path: 'admin', component: PlaceholderPage },
+      // Admin Panel – MANAGER and ADMIN roles only (lazy-loaded, guarded)
+      {
+        path: 'admin',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/admin/admin-panel.page').then(
+            (m) => m.AdminPanelPage
+          ),
+      },
+
+      // Public menu (placeholder)
       { path: 'menu', component: PlaceholderPage },
     ],
   },
