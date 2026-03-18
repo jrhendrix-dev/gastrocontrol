@@ -28,6 +28,20 @@ public class OrderResponse {
     private OrderStatus status;
 
     /**
+     * True when the order has been reopened by a manager and is pending a
+     * financial adjustment via {@code POST /actions/process-adjustment}.
+     *
+     * <p>While {@code true}:</p>
+     * <ul>
+     *   <li>Item modifications are permitted even if payment was already SUCCEEDED.</li>
+     *   <li>Transitioning to FINISHED is blocked until the adjustment is processed.</li>
+     * </ul>
+     *
+     * <p>Defaults to {@code false} for all normal orders.</p>
+     */
+    private boolean reopened;
+
+    /**
      * When the order was first created.
      * Serialised as an ISO-8601 string by Jackson ({@code WRITE_DATES_AS_TIMESTAMPS=false}).
      */
@@ -60,6 +74,9 @@ public class OrderResponse {
 
     public OrderStatus getStatus() { return status; }
     public void setStatus(OrderStatus status) { this.status = status; }
+
+    public boolean isReopened() { return reopened; }
+    public void setReopened(boolean reopened) { this.reopened = reopened; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
@@ -127,13 +144,11 @@ public class OrderResponse {
 
         /**
          * The original text before the first edit. {@code null} if the note has never been edited.
-         * Once set on the backend this value is frozen — it always reflects the first original.
          */
         private String originalNote;
 
         /**
          * When the note was last edited. {@code null} if the note has never been edited.
-         * Serialised as ISO-8601 by Jackson.
          */
         private Instant editedAt;
 

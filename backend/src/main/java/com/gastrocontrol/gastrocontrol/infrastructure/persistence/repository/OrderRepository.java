@@ -36,6 +36,8 @@ public interface OrderRepository extends JpaRepository<OrderJpaEntity, Long>, Jp
             Set<OrderStatus> statuses
     );
 
+    List<OrderJpaEntity> findByDiningTable_Id(Long tableId);
+
 
     /**
      * Lightweight projection used for table screens.

@@ -83,6 +83,12 @@ export interface OrderResponse {
    */
   createdAt: string;
 
+   /**
+    * True when the order has been reopened by a manager and is pending
+    * a financial adjustment. While true, the order cannot be FINISHED.
+   */
+   reopened?: boolean;
+
   /** Present only for TAKE_AWAY orders. */
   pickup?: { name: string | null; phone: string | null; notes: string | null } | null;
 

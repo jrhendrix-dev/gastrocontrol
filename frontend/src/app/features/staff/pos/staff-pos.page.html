@@ -116,14 +116,14 @@
             <button
               class="btn btn-primary"
               (click)="submitToKitchen()"
-              [disabled]="!order() || !isDraft()"
-              [title]="
-                !order()
-                  ? 'Añade un producto para abrir el ticket'
-                  : isDraft()
-                    ? 'Enviar a cocina'
-                    : 'Ya está enviado (PENDING)'
-              "
+              [disabled]="!canSubmitToKitchen()"
+               [title]="
+                 !order()
+                   ? 'Añade un producto para abrir el ticket'
+                   : canSubmitToKitchen()
+                     ? 'Enviar a cocina'
+                     : 'No disponible en este estado'
+               "
               type="button"
             >
               Enviar a cocina

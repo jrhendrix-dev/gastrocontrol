@@ -1,3 +1,4 @@
+// src/app/layout/navbar/navbar.component.ts
 import { Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { NgFor, NgIf } from '@angular/common';
@@ -8,9 +9,9 @@ type NavMode = 'public' | 'staff';
 type NavItem = {
   label: string;
   route: string;
-  mode?: NavMode; // if omitted -> available in all modes
+  mode?: NavMode;
   requiresAuth?: boolean;
-  rolesAny?: string[]; // show only if user has any of these roles
+  rolesAny?: string[];
 };
 
 @Component({
@@ -24,33 +25,27 @@ export class NavbarComponent {
   private router = inject(Router);
   private host = inject(ElementRef<HTMLElement>);
 
-  /** mobile menu */
   open = false;
-  /** account dropdown */
   accountOpen = false;
 
-  /**
-   * Demo mode toggle.
-   * If you want this to ALWAYS follow user roles, delete modeSig + toggleModeForDemo()
-   * and replace mode() usage with inferredMode().
-   */
-  private modeSig = signal<NavMode | null>(null); // null = "not manually set"
+  private modeSig = signal<NavMode | null>(null);
   mode = computed<NavMode>(() => this.modeSig() ?? this.inferredMode());
 
   private readonly items: NavItem[] = [
     // Public/customer
-    { label: 'Inicio', route: '/', mode: 'public' },
-    { label: 'Menú', route: '/menu', mode: 'public' },
-    { label: 'Mi pedido', route: '/order/current', mode: 'public', requiresAuth: true },
+    { label: 'Inicio',      route: '/',              mode: 'public' },
+    { label: 'Menú',        route: '/menu',           mode: 'public' },
+    { label: 'Mi pedido',   route: '/order/current',  mode: 'public', requiresAuth: true },
 
-    // Staff/admin
-    { label: 'POS', route: '/staff/pos', mode: 'staff', rolesAny: ['ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN'] },
-    { label: 'Pedidos', route: '/staff/orders', mode: 'staff', rolesAny: ['ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN'] },
-    { label: 'Cocina', route: '/staff/kitchen', mode: 'staff', rolesAny: ['ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN'] },
-    { label: 'Admin', route: '/admin', mode: 'staff', rolesAny: ['ROLE_ADMIN'] },
+    // Staff
+    { label: 'POS',     route: '/staff/pos',     mode: 'staff', rolesAny: ['ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN'] },
+    { label: 'Pedidos', route: '/staff/orders',  mode: 'staff', rolesAny: ['ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN'] },
+    { label: 'Cocina',  route: '/staff/kitchen', mode: 'staff', rolesAny: ['ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN'] },
+
+    // Admin panel — visible to MANAGER and ADMIN
+    { label: 'Admin',   route: '/admin',          mode: 'staff', rolesAny: ['ROLE_MANAGER', 'ROLE_ADMIN'] },
   ];
 
-  /** Infer mode from roles */
   inferredMode = computed<NavMode>(() => {
     const roles = this.auth.roles();
     return (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_STAFF') || roles.includes('ROLE_MANAGER'))
@@ -58,14 +53,9 @@ export class NavbarComponent {
       : 'public';
   });
 
-  /**
-   * Visible nav items.
-   * - If user is public, never show staff items.
-   * - If user is staff, allow demo toggle to switch views.
-   */
   visibleItems = computed<NavItem[]>(() => {
     const inferred = this.inferredMode();
-    const mode = inferred === 'public' ? 'public' : this.mode(); // lock down if not staff
+    const mode = inferred === 'public' ? 'public' : this.mode();
     const roles = this.auth.roles();
     const loggedIn = this.auth.loggedIn();
 
@@ -84,14 +74,9 @@ export class NavbarComponent {
     this.modeSig.set(this.mode() === 'staff' ? 'public' : 'staff');
   }
 
-  toggleAccountMenu() {
-    this.accountOpen = !this.accountOpen;
-  }
+  toggleAccountMenu() { this.accountOpen = !this.accountOpen; }
 
-  closeMenus() {
-    this.accountOpen = false;
-    this.open = false;
-  }
+  closeMenus() { this.accountOpen = false; this.open = false; }
 
   goHome(ev: MouseEvent) {
     const path = this.router.url.replace(/[?#].*$/, '');
@@ -104,15 +89,16 @@ export class NavbarComponent {
 
   panelRoute(): string | null {
     const roles = this.auth.roles();
-    if (roles.includes('ROLE_ADMIN')) return '/admin';
-    if (roles.includes('ROLE_STAFF') || roles.includes('ROLE_MANAGER')) return '/staff/pos';
+    if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_MANAGER')) return '/admin';
+    if (roles.includes('ROLE_STAFF')) return '/staff/pos';
     return null;
   }
 
   panelLabel(): string {
     const roles = this.auth.roles();
     if (roles.includes('ROLE_ADMIN')) return 'Admin';
-    if (roles.includes('ROLE_STAFF') || roles.includes('ROLE_MANAGER')) return 'POS / Staff';
+    if (roles.includes('ROLE_MANAGER')) return 'Manager';
+    if (roles.includes('ROLE_STAFF')) return 'Staff';
     return 'Panel';
   }
 
@@ -130,8 +116,6 @@ export class NavbarComponent {
   onDocClick(ev: MouseEvent) {
     if (!this.accountOpen) return;
     const target = ev.target as Node | null;
-    if (target && !this.host.nativeElement.contains(target)) {
-      this.accountOpen = false;
-    }
+    if (target && !this.host.nativeElement.contains(target)) this.accountOpen = false;
   }
 }

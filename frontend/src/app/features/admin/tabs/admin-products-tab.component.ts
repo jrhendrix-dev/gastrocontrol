@@ -34,22 +34,22 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
       <div class="toolbar">
         <div class="filters">
           <input class="gc-input filter-search" type="text"
-                 placeholder="Search products…"
+                 placeholder="Buscar productos…"
                  [(ngModel)]="searchQuery"
                  (ngModelChange)="onSearchChange()" />
           <select class="gc-input filter-select" [(ngModel)]="filterCategoryId" (ngModelChange)="load()">
-            <option value="">All categories</option>
+            <option value="">Todas las categorías</option>
             @for (cat of categories(); track cat.id) {
               <option [value]="cat.id">{{ cat.name }}</option>
             }
           </select>
           <select class="gc-input filter-select" [(ngModel)]="filterActive" (ngModelChange)="load()">
-            <option value="">All status</option>
-            <option value="true">Active</option>
-            <option value="false">Discontinued</option>
+            <option value="">Todos los estados</option>
+            <option value="true">Activo</option>
+            <option value="false">Descatalogado</option>
           </select>
         </div>
-        <button class="btn btn-primary" (click)="openCreate()">+ New Product</button>
+        <button class="btn btn-primary" (click)="openCreate()">+ Nuevo producto</button>
       </div>
 
       @if (error()) {
@@ -60,19 +60,19 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
       <div class="gc-card table-wrapper">
         <table class="products-table">
           <thead>
-            <tr>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
+          <tr>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th>Precio</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
           </thead>
           <tbody>
             @if (loading()) {
               <tr><td colspan="5" class="empty-cell">Loading…</td></tr>
             } @else if (products().length === 0) {
-              <tr><td colspan="5" class="empty-cell">No products found.</td></tr>
+              <tr><td colspan="5" class="empty-cell">No se encontraron productos.</td></tr>
             } @else {
               @for (p of products(); track p.id) {
                 <tr [class.discontinued-row]="!p.active">
@@ -86,16 +86,16 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
                   <td class="cell-price">{{ formatPrice(p.priceCents) }}</td>
                   <td>
                     <span class="status-chip" [class.active]="p.active">
-                      {{ p.active ? 'Active' : 'Discontinued' }}
+                      {{ p.active ? 'Activo' : 'Descatalogado' }}
                     </span>
                   </td>
                   <td class="actions-cell">
                     <div class="action-menu">
-                      <button class="btn btn-outline btn-sm" (click)="openEdit(p)">Edit</button>
+                      <button class="btn btn-outline btn-sm" (click)="openEdit(p)">Editar</button>
                       @if (p.active) {
-                        <button class="btn-danger-soft btn-sm" (click)="openDiscontinue(p)">Discontinue</button>
+                        <button class="btn-danger-soft btn-sm" (click)="openDiscontinue(p)">Descatalogar</button>
                       } @else {
-                        <button class="btn btn-outline btn-sm" (click)="openReactivate(p)">Reactivate</button>
+                        <button class="btn btn-outline btn-sm" (click)="openReactivate(p)">Reactivar</button>
                       }
                     </div>
                   </td>
@@ -124,28 +124,28 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
     @if (modalType() === 'create' || modalType() === 'edit') {
       <div class="modal-backdrop" (click)="closeModal()">
         <div class="modal gc-card" (click)="$event.stopPropagation()">
-          <h2 class="modal-title">{{ modalType() === 'create' ? 'New Product' : 'Edit Product' }}</h2>
+          <h2 class="modal-title">{{ modalType() === 'create' ? 'Nuevo producto' : 'Editar producto' }}</h2>
 
           <div class="form-field">
-            <label>Name *</label>
-            <input class="gc-input" type="text" [(ngModel)]="productForm.name" placeholder="Product name" />
+            <label>Nombre *</label>
+            <input class="gc-input" type="text" [(ngModel)]="productForm.name" placeholder="Nombre del producto" />
           </div>
           <div class="form-field">
-            <label>Description</label>
+            <label>Descripción</label>
             <textarea class="gc-input" rows="2" [(ngModel)]="productForm.description"
-                      placeholder="Optional description"></textarea>
+                      placeholder="Descripción opcional"></textarea>
           </div>
           <div class="form-row">
             <div class="form-field">
-              <label>Price (€) *</label>
+              <label>Precio (€) *</label>
               <input class="gc-input" type="number" min="0" step="0.01"
                      [(ngModel)]="productPriceEuros"
                      placeholder="0.00" />
             </div>
             <div class="form-field">
-              <label>Category</label>
+              <label>Categoría</label>
               <select class="gc-input" [(ngModel)]="productForm.categoryId">
-                <option [ngValue]="null">No category</option>
+                <option [ngValue]="null">Sin categoría</option>
                 @for (cat of categories(); track cat.id) {
                   <option [ngValue]="cat.id">{{ cat.name }}</option>
                 }
@@ -156,9 +156,9 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
           @if (modalError()) { <div class="error-banner">{{ modalError() }}</div> }
 
           <div class="modal-actions">
-            <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
+            <button class="btn btn-outline" (click)="closeModal()">Cancelar</button>
             <button class="btn btn-primary" [disabled]="modalLoading()" (click)="submitProductForm()">
-              {{ modalLoading() ? 'Saving…' : (modalType() === 'create' ? 'Create' : 'Save Changes') }}
+              {{ modalLoading() ? 'Guardando…' : (modalType() === 'create' ? 'Crear' : 'Guardar cambios') }}
             </button>
           </div>
         </div>
@@ -169,20 +169,20 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
     @if (modalType() === 'discontinue') {
       <div class="modal-backdrop" (click)="closeModal()">
         <div class="modal gc-card" (click)="$event.stopPropagation()">
-          <h2 class="modal-title">Discontinue Product</h2>
+          <h2 class="modal-title">Descatalogar producto</h2>
           <p class="modal-sub">
-            <strong>{{ selectedProduct()?.name }}</strong> will no longer appear in the POS.
+            <strong>{{ selectedProduct()?.name }}</strong> ya no aparecerá en el TPV.
           </p>
           <div class="form-field">
-            <label>Reason (optional)</label>
+            <label>Motivo (opcional)</label>
             <input class="gc-input" type="text" [(ngModel)]="discontinueReason"
-                   placeholder="e.g. Out of stock, seasonal item…" />
+                   placeholder="Ej. Sin existencias, seasonal item…" />
           </div>
           @if (modalError()) { <div class="error-banner">{{ modalError() }}</div> }
           <div class="modal-actions">
-            <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
+            <button class="btn btn-outline" (click)="closeModal()">Cancelar</button>
             <button class="btn btn-danger" [disabled]="modalLoading()" (click)="submitDiscontinue()">
-              {{ modalLoading() ? 'Processing…' : 'Discontinue' }}
+              {{ modalLoading() ? 'Procesando…' : 'Descatalogar' }}
             </button>
           </div>
         </div>
@@ -193,15 +193,15 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
     @if (modalType() === 'confirmReactivate') {
       <div class="modal-backdrop" (click)="closeModal()">
         <div class="modal modal-sm gc-card" (click)="$event.stopPropagation()">
-          <h2 class="modal-title">Reactivate Product</h2>
+          <h2 class="modal-title">Reactivar producto</h2>
           <p class="modal-sub">
-            <strong>{{ selectedProduct()?.name }}</strong> will appear in the POS again.
+            <strong>{{ selectedProduct()?.name }}</strong> volverá a aparecer en el TPV.
           </p>
           @if (modalError()) { <div class="error-banner">{{ modalError() }}</div> }
           <div class="modal-actions">
-            <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
+            <button class="btn btn-outline" (click)="closeModal()">Cancelar</button>
             <button class="btn btn-primary" [disabled]="modalLoading()" (click)="submitReactivate()">
-              {{ modalLoading() ? 'Processing…' : 'Reactivate' }}
+              {{ modalLoading() ? 'Procesando…' : 'Reactivar' }}
             </button>
           </div>
         </div>
@@ -347,7 +347,7 @@ export class AdminProductsTabComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('Failed to load products. Please try again.');
+        this.error.set('Error al cargar los productos. Inténtalo de nuevo.');
         this.loading.set(false);
       },
     });
@@ -398,11 +398,11 @@ export class AdminProductsTabComponent implements OnInit {
 
   protected submitProductForm(): void {
     if (!this.productForm.name.trim()) {
-      this.modalError.set('Name is required.');
+      this.modalError.set('El nombre es obligatorio.');
       return;
     }
     if (this.productPriceEuros == null || this.productPriceEuros < 0) {
-      this.modalError.set('A valid price is required.');
+      this.modalError.set('Se requiere un precio válido.');
       return;
     }
 
@@ -476,6 +476,6 @@ export class AdminProductsTabComponent implements OnInit {
     this.modalLoading.set(false);
     const details = (err as any)?.error?.error?.details;
     if (details) { this.modalError.set(Object.values(details).join(' ')); return; }
-    this.modalError.set((err as any)?.error?.error?.message ?? 'An unexpected error occurred.');
+    this.modalError.set((err as any)?.error?.error?.message ?? 'Ha ocurrido un error inesperado.');
   }
 }

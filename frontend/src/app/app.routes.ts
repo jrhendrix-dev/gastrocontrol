@@ -8,6 +8,7 @@ import { StaffPosPage } from './features/staff/pos/staff-pos.page';
 import { MePage } from './features/me/pages/me.page';
 import { ConfirmEmailChangePage } from '@app/app/features/me/pages/confirm-email-change.page';
 import { adminGuard } from './features/admin/admin.guard';
+import { staffGuard } from './features/staff/staff.guard';
 
 export const routes: Routes = [
   // ── Standalone pages (no navbar / shell) ────────────────────────────────
@@ -37,24 +38,22 @@ export const routes: Routes = [
       { path: 'confirm-email-change', component: ConfirmEmailChangePage },
 
       // Staff – POS (eager, used constantly)
-      { path: 'staff/pos', component: StaffPosPage },
+      { path: 'staff/pos',     component: StaffPosPage, canActivate: [staffGuard] },
 
       // Staff – Kitchen Display (lazy-loaded)
       {
         path: 'staff/kitchen',
+        canActivate: [staffGuard],
         loadComponent: () =>
-          import('./features/staff/kitchen/staff-kitchen.page').then(
-            (m) => m.StaffKitchenPage
-          ),
+          import('./features/staff/kitchen/staff-kitchen.page').then(m => m.StaffKitchenPage),
       },
 
       // Staff – Orders List (lazy-loaded)
       {
         path: 'staff/orders',
+        canActivate: [staffGuard],
         loadComponent: () =>
-          import('./features/staff/orders/staff-orders-list.page').then(
-            (m) => m.StaffOrdersListPage
-          ),
+          import('./features/staff/orders/staff-orders-list.page').then(m => m.StaffOrdersListPage),
       },
 
       // Admin Panel – MANAGER and ADMIN roles only (lazy-loaded, guarded)

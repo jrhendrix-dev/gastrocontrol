@@ -23,7 +23,8 @@ public final class StaffOrderMapper {
     private StaffOrderMapper() {}
 
     /**
-     * Maps an order entity — including its items and notes — to the staff-facing response DTO.
+     * Maps an order entity — including its items, notes, and reopen state —
+     * to the staff-facing response DTO.
      *
      * @param order the fully-hydrated order entity; must not be null
      * @return a populated {@link OrderResponse}
@@ -35,7 +36,8 @@ public final class StaffOrderMapper {
         r.setTableId(order.getDiningTable() == null ? null : order.getDiningTable().getId());
         r.setTotalCents(order.getTotalCents());
         r.setStatus(order.getStatus());
-        r.setCreatedAt(order.getCreatedAt()); // ← fixes "hace NaN h" on the KDS
+        r.setReopened(order.isReopened()); // ← surfaces the edit-window flag to all clients
+        r.setCreatedAt(order.getCreatedAt());
 
         // Delivery snapshot
         if (order.getDeliveryName() != null
@@ -90,7 +92,6 @@ public final class StaffOrderMapper {
                 note.setNote(n.getNote());
                 note.setAuthorRole(n.getAuthorRole());
                 note.setCreatedAt(n.getCreatedAt());
-                // Edit audit fields — null when the note has never been edited
                 note.setOriginalNote(n.getOriginalNote());
                 note.setEditedAt(n.getEditedAt());
                 return note;

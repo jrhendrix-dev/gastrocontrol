@@ -555,6 +555,18 @@ export class StaffPosPage implements OnInit {
   isServed = computed(() => this.order()?.status === 'SERVED');
 
 
+   /**
+    * True when the "Enviar a cocina" button should be active.
+    * Normal flow: only from DRAFT.
+    * Reopen flow: also from PENDING when order.reopened = true
+    *              (manager unlocked edits, staff must re-send to kitchen).
+    */
+   canSubmitToKitchen = computed(() => {
+     const o = this.order();
+     if (!o) return false;
+     return o.status === 'DRAFT' || (o.status === 'PENDING' && !!o.reopened);
+   });
+
   /**
    * Opens the payment modal. Only callable when the order is SERVED.
    */

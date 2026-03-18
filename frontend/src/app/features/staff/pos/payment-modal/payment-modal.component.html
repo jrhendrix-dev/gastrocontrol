@@ -1,6 +1,5 @@
 <!-- src/app/features/staff/pos/payment-modal/payment-modal.component.html -->
 
-<!-- Backdrop -->
 <div
   *ngIf="open"
   class="fixed inset-0 z-[8000] flex items-center justify-center p-4"
@@ -9,10 +8,8 @@
   aria-modal="true"
   aria-labelledby="payment-modal-title"
 >
-  <!-- Dark overlay -->
   <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-  <!-- Modal panel — stop click propagation so inner clicks don't close modal -->
   <div
     class="relative z-10 w-full max-w-sm rounded-2xl shadow-2xl"
     style="background: var(--gc-surface); border: 1px solid rgba(0,0,0,0.08);"
@@ -42,7 +39,7 @@
     <!-- Body -->
     <div class="px-5 py-5 space-y-5">
 
-      <!-- Total -->
+      <!-- Total (always visible) -->
       <div
         class="flex items-center justify-between rounded-xl px-4 py-3"
         style="background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06);"
@@ -53,61 +50,84 @@
         </span>
       </div>
 
-      <!-- Method selection -->
-      <div>
+      <!-- ── Reopened blocking state ──────────────────────────────────────── -->
+      <ng-container *ngIf="reopened; else paymentForm">
         <div
-          class="mb-2 text-xs font-semibold uppercase tracking-widest"
-          style="color: var(--gc-ink); opacity: 0.45;"
+          class="rounded-xl border px-4 py-4 text-sm space-y-2"
+          style="background: rgba(234,179,8,0.08); border-color: rgba(234,179,8,0.3);"
         >
-          Método de pago
+          <div class="flex items-center gap-2 font-semibold" style="color: #92400e;">
+            <span>⚠️</span>
+            <span>Pedido reabierto — pago bloqueado</span>
+          </div>
+          <p style="color: var(--gc-ink-muted); line-height: 1.5;">
+            Este pedido fue reabierto por un manager para modificar artículos.
+            Antes de cobrar, el manager debe procesar el ajuste financiero
+            desde el <strong>Panel de Administración → Operaciones</strong>.
+          </p>
         </div>
-        <div class="grid grid-cols-3 gap-2">
-          <button
-            *ngFor="let m of methods; trackBy: trackMethod"
-            type="button"
-            class="flex flex-col items-center gap-1.5 rounded-xl border-2 px-2 py-3 text-center text-xs font-semibold transition-all duration-150"
-            [ngClass]="selectedMethod() === m
-              ? 'border-transparent shadow-sm'
-              : 'border-transparent hover:border-black/10'"
-            [style.background]="selectedMethod() === m ? 'var(--gc-brand)' : 'rgba(0,0,0,0.04)'"
-            [style.color]="selectedMethod() === m ? 'var(--gc-surface)' : 'var(--gc-ink)'"
-            (click)="selectMethod(m)"
-            [disabled]="loading"
+      </ng-container>
+
+      <!-- ── Normal payment form ──────────────────────────────────────────── -->
+      <ng-template #paymentForm>
+
+        <!-- Method selection -->
+        <div>
+          <div
+            class="mb-2 text-xs font-semibold uppercase tracking-widest"
+            style="color: var(--gc-ink); opacity: 0.45;"
           >
-            <span class="text-xl">{{ methodIcon[m] }}</span>
-            <span>{{ m }}</span>
-          </button>
+            Método de pago
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <button
+              *ngFor="let m of methods; trackBy: trackMethod"
+              type="button"
+              class="flex flex-col items-center gap-1.5 rounded-xl border-2 px-2 py-3 text-center text-xs font-semibold transition-all duration-150"
+              [ngClass]="selectedMethod() === m
+                ? 'border-transparent shadow-sm'
+                : 'border-transparent hover:border-black/10'"
+              [style.background]="selectedMethod() === m ? 'var(--gc-brand)' : 'rgba(0,0,0,0.04)'"
+              [style.color]="selectedMethod() === m ? 'var(--gc-surface)' : 'var(--gc-ink)'"
+              (click)="selectMethod(m)"
+              [disabled]="loading"
+            >
+              <span class="text-xl">{{ methodIcon[m] }}</span>
+              <span>{{ m }}</span>
+            </button>
+          </div>
         </div>
-      </div>
 
-      <!-- Optional reference field (shown for all methods) -->
-      <div *ngIf="selectedMethod()">
-        <label
-          class="mb-1 block text-xs font-semibold uppercase tracking-widest"
-          style="color: var(--gc-ink); opacity: 0.45;"
-          for="payment-ref"
+        <!-- Optional reference field -->
+        <div *ngIf="selectedMethod()">
+          <label
+            class="mb-1 block text-xs font-semibold uppercase tracking-widest"
+            style="color: var(--gc-ink); opacity: 0.45;"
+            for="payment-ref"
+          >
+            Referencia
+          </label>
+          <input
+            id="payment-ref"
+            type="text"
+            class="gc-input w-full"
+            [placeholder]="referencePlaceholder()"
+            [(ngModel)]="referenceValue"
+            [disabled]="loading"
+            maxlength="120"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- API error (only shown in normal flow) -->
+        <div
+          *ngIf="error"
+          class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
         >
-          Referencia
-        </label>
-        <input
-          id="payment-ref"
-          type="text"
-          class="gc-input w-full"
-          [placeholder]="referencePlaceholder()"
-          [(ngModel)]="referenceValue"
-          [disabled]="loading"
-          maxlength="120"
-          autocomplete="off"
-        />
-      </div>
+          {{ error }}
+        </div>
 
-      <!-- Error -->
-      <div
-        *ngIf="error"
-        class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-      >
-        {{ error }}
-      </div>
+      </ng-template>
 
     </div>
 
@@ -122,10 +142,11 @@
         (click)="dismiss()"
         [disabled]="loading"
       >
-        Cancelar
+        {{ reopened ? 'Cerrar' : 'Cancelar' }}
       </button>
 
       <button
+        *ngIf="!reopened"
         type="button"
         class="btn btn-primary flex-[2] flex items-center justify-center gap-2"
         [disabled]="!canConfirm()"
