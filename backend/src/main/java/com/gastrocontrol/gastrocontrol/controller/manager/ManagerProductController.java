@@ -2,7 +2,6 @@
 package com.gastrocontrol.gastrocontrol.controller.manager;
 
 import com.gastrocontrol.gastrocontrol.application.service.product.ListProductsQuery;
-import com.gastrocontrol.gastrocontrol.application.service.product.ListProductsService;
 import com.gastrocontrol.gastrocontrol.dto.common.ApiResponse;
 import com.gastrocontrol.gastrocontrol.dto.common.PagedResponse;
 import com.gastrocontrol.gastrocontrol.dto.manager.CreateProductRequest;
@@ -10,10 +9,6 @@ import com.gastrocontrol.gastrocontrol.dto.manager.DiscontinueProductRequest;
 import com.gastrocontrol.gastrocontrol.dto.manager.ManagerProductResponse;
 import com.gastrocontrol.gastrocontrol.dto.manager.UpdateProductRequest;
 import com.gastrocontrol.gastrocontrol.application.service.manager.ManagerProductService;
-import com.gastrocontrol.gastrocontrol.mapper.product.ManagerProductMapper;
-import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.ProductJpaEntity;
-import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.ProductRepository;
-import com.gastrocontrol.gastrocontrol.application.service.product.ProductSpecifications;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,29 +21,27 @@ import org.springframework.web.bind.annotation.*;
  *
  * <p>Accessible to {@code MANAGER} and {@code ADMIN} roles (enforced by
  * {@code SecurityConfig} at the {@code /api/manager/**} path level).</p>
+ *
+ * <p>The list operation delegates entirely to {@link ManagerProductService#list}
+ * rather than calling the repository directly. This ensures the Hibernate session
+ * remains open during entity-to-DTO mapping, preventing
+ * {@code LazyInitializationException} on lazily-loaded associations such as
+ * {@code discontinuedBy}.</p>
  */
 @RestController
 @RequestMapping("/api/manager/products")
 public class ManagerProductController {
 
     private final ManagerProductService managerProductService;
-    private final ProductRepository productRepository;
 
-    public ManagerProductController(
-            ManagerProductService managerProductService,
-            ProductRepository productRepository
-    ) {
+    public ManagerProductController(ManagerProductService managerProductService) {
         this.managerProductService = managerProductService;
-        this.productRepository = productRepository;
     }
 
     /**
-     * Lists all products with pagination, optional active/category/search filters.
+     * Lists all products with pagination and optional filters.
      *
-     * <p>Returns the richer {@link ManagerProductResponse} which includes
-     * discontinuation audit fields not present in the staff view.</p>
-     *
-     * @param active     optional boolean filter (true = active only, false = discontinued only)
+     * @param active     optional boolean filter (true = active, false = discontinued)
      * @param categoryId optional category filter
      * @param q          optional name search (case-insensitive, partial match)
      * @param page       zero-based page index (default 0)
@@ -67,10 +60,7 @@ public class ManagerProductController {
     ) {
         Pageable pageable = toPageable(page, size, sort);
         var query = new ListProductsQuery(active, categoryId, q);
-        var pageResult = productRepository
-                .findAll(ProductSpecifications.build(query), pageable)
-                .map(ManagerProductMapper::toResponse);
-        return ResponseEntity.ok(PagedResponse.from(pageResult));
+        return ResponseEntity.ok(managerProductService.list(query, pageable));
     }
 
     /**

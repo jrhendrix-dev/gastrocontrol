@@ -22,4 +22,6 @@ public interface ProductRepository extends JpaRepository<ProductJpaEntity, Long>
     List<ProductJpaEntity> findByActiveTrueOrderByCategory_IdAscNameAsc();
     List<ProductJpaEntity> findByActiveTrueAndCategory_IdOrderByNameAsc(Long categoryId);
 
+    boolean existsByNameIgnoreCase(String name);
+
 }

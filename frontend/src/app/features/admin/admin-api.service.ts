@@ -112,32 +112,43 @@ export class AdminApiService {
 
   // ── Products (MANAGER+) ─────────────────────────────────────────────────
 
-  listProducts(active?: boolean, page = 0, size = 50): Observable<PagedResponse<ProductResponse>> {
+  listProducts(
+    active?: boolean,
+    page = 0,
+    size = 20,
+    categoryId?: number,
+    q?: string
+  ): Observable<PagedResponse<ProductResponse>> {
     let httpParams = new HttpParams()
       .set('page', String(page))
       .set('size', String(size));
-    if (active != null) httpParams = httpParams.set('active', String(active));
+    if (active != null)     httpParams = httpParams.set('active',     String(active));
+    if (categoryId != null) httpParams = httpParams.set('categoryId', String(categoryId));
+    if (q?.trim())          httpParams = httpParams.set('q',          q.trim());
     return this.http.get<PagedResponse<ProductResponse>>(
       `${this.API}/api/manager/products`,
       { params: httpParams }
     );
   }
 
-  createProduct(req: CreateProductRequest): Observable<ProductResponse> {
+  createProduct(req: CreateProductRequest): Observable<void> {
     return this.http
-      .post<ApiResponse<ProductResponse>>(`${this.API}/api/manager/products`, req)
-      .pipe(map(r => r.data));
+      .post<ApiResponse<void>>(`${this.API}/api/manager/products`, req)
+      .pipe(map(() => void 0));
   }
 
-  updateProduct(id: number, req: UpdateProductRequest): Observable<ProductResponse> {
+  updateProduct(id: number, req: UpdateProductRequest): Observable<void> {
     return this.http
-      .patch<ApiResponse<ProductResponse>>(`${this.API}/api/manager/products/${id}`, req)
-      .pipe(map(r => r.data));
+      .patch<ApiResponse<void>>(`${this.API}/api/manager/products/${id}`, req)
+      .pipe(map(() => void 0));
   }
 
-  discontinueProduct(id: number): Observable<void> {
+  discontinueProduct(id: number, reason?: string): Observable<void> {
     return this.http
-      .post<ApiResponse<void>>(`${this.API}/api/manager/products/${id}/actions/discontinue`, {})
+      .post<ApiResponse<void>>(
+        `${this.API}/api/manager/products/${id}/actions/discontinue`,
+        reason ? { reason } : {}
+      )
       .pipe(map(() => void 0));
   }
 
@@ -151,8 +162,7 @@ export class AdminApiService {
 
   listCategories(): Observable<CategoryResponse[]> {
     return this.http
-      .get<ApiResponse<CategoryResponse[]>>(`${this.API}/api/manager/categories`)
-      .pipe(map(r => r.data));
+      .get<CategoryResponse[]>(`${this.API}/api/manager/categories`);
   }
 
   createCategory(req: CreateCategoryRequest): Observable<CategoryResponse> {
@@ -177,8 +187,7 @@ export class AdminApiService {
 
   listTables(): Observable<TableResponse[]> {
     return this.http
-      .get<ApiResponse<TableResponse[]>>(`${this.API}/api/manager/tables`)
-      .pipe(map(r => r.data));
+      .get<TableResponse[]>(`${this.API}/api/manager/tables`);
   }
 
   createTable(req: CreateTableRequest): Observable<TableResponse> {
