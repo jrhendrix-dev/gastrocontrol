@@ -278,10 +278,12 @@ export class AdminDashboardTabComponent implements OnInit {
         createdFrom: todayStart, createdTo: todayEnd,
         size: 200, sort: 'createdAt,desc',
       }),
-      // Today's FINISHED orders — for revenue
+      // Today's FINISHED orders — filtered by closedAt (when finalized),
+      // NOT createdAt (when placed). This correctly captures orders placed
+      // days ago but finalized today (e.g. via manager Operations tab).
       todayFinished: this.ordersApi.list({
         status: 'FINISHED',
-        createdFrom: todayStart, createdTo: todayEnd,
+        closedFrom: todayStart, closedTo: todayEnd,
         size: 200, sort: 'createdAt,desc',
       }),
       // Active orders — for open order + table count

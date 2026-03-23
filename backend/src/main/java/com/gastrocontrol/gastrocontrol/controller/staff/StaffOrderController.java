@@ -18,7 +18,6 @@ import com.gastrocontrol.gastrocontrol.application.service.order.ProcessOrderAdj
 import com.gastrocontrol.gastrocontrol.application.service.order.ProcessOrderAdjustmentCommand;
 import com.gastrocontrol.gastrocontrol.application.service.order.ProcessOrderAdjustmentResult;
 
-
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -53,7 +52,6 @@ public class StaffOrderController {
     private final UpdateOrderNoteService updateOrderNoteService;
     private final DeleteOrderNoteService deleteOrderNoteService;
 
-
     public StaffOrderController(
             CreateOrderService createOrderService,
             ChangeOrderStatusService changeOrderStatusService,
@@ -64,7 +62,12 @@ public class StaffOrderController {
             AddOrderItemService addOrderItemService,
             UpdateOrderItemQuantityService updateOrderItemQuantityService,
             RemoveOrderItemService removeOrderItemService,
-            SubmitOrderService submitOrderService, CancelOrderService cancelOrderService, ProcessOrderAdjustmentService processOrderAdjustmentService, AddOrderNoteService addOrderNoteService, UpdateOrderNoteService updateOrderNoteService, DeleteOrderNoteService deleteOrderNoteService
+            SubmitOrderService submitOrderService,
+            CancelOrderService cancelOrderService,
+            ProcessOrderAdjustmentService processOrderAdjustmentService,
+            AddOrderNoteService addOrderNoteService,
+            UpdateOrderNoteService updateOrderNoteService,
+            DeleteOrderNoteService deleteOrderNoteService
     ) {
         this.createOrderService = createOrderService;
         this.changeOrderStatusService = changeOrderStatusService;
@@ -85,50 +88,33 @@ public class StaffOrderController {
 
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
-
         DeliverySnapshotDto delivery = null;
         if (request.getDelivery() != null) {
             var d = request.getDelivery();
             delivery = new DeliverySnapshotDto(
-                    d.getName(),
-                    d.getPhone(),
-                    d.getAddressLine1(),
-                    d.getAddressLine2(),
-                    d.getCity(),
-                    d.getPostalCode(),
-                    d.getNotes()
+                    d.getName(), d.getPhone(), d.getAddressLine1(),
+                    d.getAddressLine2(), d.getCity(), d.getPostalCode(), d.getNotes()
             );
         }
 
         PickupSnapshotDto pickup = null;
         if (request.getPickup() != null) {
             var p = request.getPickup();
-            pickup = new PickupSnapshotDto(
-                    p.getName(),
-                    p.getPhone(),
-                    p.getNotes()
-            );
+            pickup = new PickupSnapshotDto(p.getName(), p.getPhone(), p.getNotes());
         }
 
         CreateOrderCommand command = new CreateOrderCommand(
-                request.getType(),
-                request.getTableId(),
-                delivery,
-                pickup,
+                request.getType(), request.getTableId(), delivery, pickup,
                 safeItems(request).stream()
                         .map(i -> new CreateOrderCommand.CreateOrderItem(i.getProductId(), i.getQuantity()))
                         .collect(Collectors.toList())
         );
 
         CreateOrderResult result = createOrderService.handle(command);
-
-        // Return the hydrated order so the response includes orderItem ids (needed for item update/delete).
         return ResponseEntity.status(HttpStatus.CREATED).body(getOrderService.handle(result.getOrderId()));
     }
 
-    /**
-     * Opens a POS ticket (draft order) that can be incrementally modified before being submitted.
-     */
+    /** Opens a POS ticket (draft order) that can be incrementally modified before being submitted. */
     @PostMapping("/drafts")
     public ResponseEntity<OrderResponse> createDraft(@Valid @RequestBody CreateDraftOrderRequest request) {
         CreateDraftOrderResult result = createDraftOrderService.handle(
@@ -137,9 +123,7 @@ public class StaffOrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(getOrderService.handle(result.getOrderId()));
     }
 
-    /**
-     * Adds an item to an existing order.
-     */
+    /** Adds an item to an existing order. */
     @PostMapping("/{orderId}/items")
     public ResponseEntity<OrderResponse> addItem(
             @PathVariable Long orderId,
@@ -150,9 +134,7 @@ public class StaffOrderController {
         ));
     }
 
-    /**
-     * Changes the quantity of an existing order item.
-     */
+    /** Changes the quantity of an existing order item. */
     @PatchMapping("/{orderId}/items/{itemId}")
     public ResponseEntity<OrderResponse> updateItemQuantity(
             @PathVariable Long orderId,
@@ -164,9 +146,7 @@ public class StaffOrderController {
         ));
     }
 
-    /**
-     * Removes an item from an existing order.
-     */
+    /** Removes an item from an existing order. */
     @DeleteMapping("/{orderId}/items/{itemId}")
     public ResponseEntity<OrderResponse> removeItem(
             @PathVariable Long orderId,
@@ -177,14 +157,11 @@ public class StaffOrderController {
         ));
     }
 
-    /**
-     * Sends a draft ticket to the kitchen (DRAFT -> PENDING).
-     */
+    /** Sends a draft ticket to the kitchen (DRAFT -> PENDING). */
     @PostMapping("/{orderId}/actions/submit")
     public ResponseEntity<OrderResponse> submit(@PathVariable Long orderId) {
         return ResponseEntity.ok(submitOrderService.handle(orderId));
     }
-
 
     @PatchMapping("/{orderId}/status")
     public ResponseEntity<ApiResponse<ChangeOrderStatusResult>> changeOrderStatus(
@@ -194,10 +171,8 @@ public class StaffOrderController {
         ChangeOrderStatusResult result = changeOrderStatusService.handle(
                 new ChangeOrderStatusCommand(orderId, req.getNewStatus(), req.getMessage())
         );
-
         String msg = "Order " + result.getOrderId() + " status changed from "
                 + result.getOldStatus() + " to " + result.getNewStatus();
-
         return ResponseEntity.ok(ApiResponse.ok(msg, result));
     }
 
@@ -209,40 +184,42 @@ public class StaffOrderController {
         OrderDto order = reopenOrderService.handle(
                 new ReopenOrderCommand(orderId, req.getReasonCode(), req.getMessage())
         );
-
         return ResponseEntity.ok(ApiResponse.ok(
-                "Order reopened: " + order.getId() + " (status=" + order.getStatus() + ")",
-                order
+                "Order reopened: " + order.getId() + " (status=" + order.getStatus() + ")", order
         ));
     }
-
-    private static List<CreateOrderRequest.OrderItemRequest> safeItems(CreateOrderRequest request) {
-        return request.getItems() == null ? Collections.emptyList() : request.getItems();
-    }
-
-
-
 
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponse> getById(@PathVariable Long orderId) {
         return ResponseEntity.ok(getOrderService.handle(orderId));
     }
 
+    /**
+     * Lists orders with optional filters including createdAt and closedAt ranges.
+     *
+     * <p>Use {@code closedFrom}/{@code closedTo} for revenue dashboards — this filters
+     * by when the order was finalized, not when it was placed. This correctly captures
+     * orders created days ago but finished today.</p>
+     */
     @GetMapping
     public ResponseEntity<PagedResponse<OrderResponse>> listOrders(
-            @RequestParam(required = false) String status, // e.g. "PENDING,IN_PREPARATION"
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) OrderType type,
             @RequestParam(required = false) Long tableId,
             @RequestParam(required = false) Instant createdFrom,
             @RequestParam(required = false) Instant createdTo,
+            @RequestParam(required = false) Instant closedFrom,
+            @RequestParam(required = false) Instant closedTo,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt,desc") String sort
     ) {
         Pageable pageable = toPageable(page, size, sort);
-
         List<OrderStatus> statuses = parseStatuses(status);
+
         ListOrdersQuery q = new ListOrdersQuery(statuses, type, createdFrom, createdTo, tableId);
+        q.setClosedFrom(closedFrom);
+        q.setClosedTo(closedTo);
 
         return ResponseEntity.ok(listOrdersService.handle(q, pageable));
     }
@@ -259,17 +236,12 @@ public class StaffOrderController {
     ) {
         Pageable pageable = toPageable(page, size, sort);
 
-        // Active tickets for POS/table occupancy. FINISHED and CANCELLED are not active.
         List<OrderStatus> activeStatuses = List.of(
-                OrderStatus.DRAFT,
-                OrderStatus.PENDING,
-                OrderStatus.IN_PREPARATION,
-                OrderStatus.READY,
-                OrderStatus.SERVED
+                OrderStatus.DRAFT, OrderStatus.PENDING,
+                OrderStatus.IN_PREPARATION, OrderStatus.READY, OrderStatus.SERVED
         );
 
         ListOrdersQuery q = new ListOrdersQuery(activeStatuses, type, createdFrom, createdTo, tableId);
-
         return ResponseEntity.ok(listOrdersService.handle(q, pageable));
     }
 
@@ -278,45 +250,8 @@ public class StaffOrderController {
         return ResponseEntity.ok(cancelOrderService.handle(orderId));
     }
 
-
-    private static Pageable toPageable(int page, int size, String sort) {
-        // sort format: "createdAt,desc" or "totalCents,asc"
-        String[] parts = sort.split(",");
-        String field = parts.length > 0 ? parts[0].trim() : "createdAt";
-        Sort.Direction dir = (parts.length > 1 && "asc".equalsIgnoreCase(parts[1].trim()))
-                ? Sort.Direction.ASC
-                : Sort.Direction.DESC;
-
-        return PageRequest.of(page, size, Sort.by(dir, field));
-    }
-
-    private static List<OrderStatus> parseStatuses(String statusCsv) {
-        if (statusCsv == null || statusCsv.trim().isEmpty()) return null;
-
-        return Arrays.stream(statusCsv.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(OrderStatus::valueOf)
-                .collect(Collectors.toList());
-    }
-
     /**
      * Processes the financial adjustment for a reopened and modified order.
-     *
-     * <p>After a manager calls {@code /actions/reopen} and modifies the order's items,
-     * this endpoint resolves the financial delta:</p>
-     * <ul>
-     *   <li>delta &gt; 0 → extra charge (MANUAL: record reference; STRIPE: stubbed)</li>
-     *   <li>delta &lt; 0 → partial refund (MANUAL: record reference; STRIPE: stubbed)</li>
-     *   <li>delta == 0 → no action, just closes the edit window</li>
-     * </ul>
-     *
-     * <p>On success, the order's {@code reopened} flag is cleared and the order
-     * can proceed through the pipeline to FINISHED.</p>
-     *
-     * @param orderId the order to adjust
-     * @param req     the adjustment request (provider + optional manual reference)
-     * @return the adjustment result including delta and provider reference
      */
     @PostMapping("/{orderId}/actions/process-adjustment")
     public ResponseEntity<ApiResponse<ProcessOrderAdjustmentResult>> processAdjustment(
@@ -324,33 +259,14 @@ public class StaffOrderController {
             @Valid @RequestBody ProcessAdjustmentRequest req
     ) {
         ProcessOrderAdjustmentResult result = processOrderAdjustmentService.handle(
-                new ProcessOrderAdjustmentCommand(
-                        orderId,
-                        req.getProvider(),
-                        req.getManualReference()
-                )
+                new ProcessOrderAdjustmentCommand(orderId, req.getProvider(), req.getManualReference())
         );
-
-        String msg = String.format(
-                "Adjustment processed for order %d: %s (delta=%+d cents)",
-                result.orderId(),
-                result.adjustmentType(),
-                result.deltaCents()
-        );
-
+        String msg = String.format("Adjustment processed for order %d: %s (delta=%+d cents)",
+                result.orderId(), result.adjustmentType(), result.deltaCents());
         return ResponseEntity.ok(ApiResponse.ok(msg, result));
     }
 
-    /**
-     * Appends a free-text note to an existing order.
-     *
-     * <p>Notes can be added regardless of order status — staff must always be
-     * able to communicate kitchen instructions or allergy warnings.</p>
-     *
-     * @param orderId the order to annotate
-     * @param request the note content
-     * @return the updated order including the new note
-     */
+    /** Appends a free-text note to an existing order. */
     @PostMapping("/{orderId}/notes")
     public ResponseEntity<OrderResponse> addNote(
             @PathVariable Long orderId,
@@ -361,50 +277,43 @@ public class StaffOrderController {
         );
     }
 
-    /**
-     * Edits the text of an existing order note.
-     *
-     * <p>Editing is permitted regardless of order status so the kitchen always
-     * gets the corrected version of time-sensitive instructions.</p>
-     *
-     * <p>On the first edit the original text is preserved in the database
-     * ({@code original_note}). Subsequent edits overwrite only the live text
-     * and update the {@code edited_at} timestamp.</p>
-     *
-     * @param orderId the order the note belongs to
-     * @param noteId  the note to edit
-     * @param request the replacement text
-     * @return the updated order (all notes included)
-     */
+    /** Edits the text of an existing order note. */
     @PatchMapping("/{orderId}/notes/{noteId}")
     public ResponseEntity<OrderResponse> updateNote(
             @PathVariable Long orderId,
             @PathVariable Long noteId,
             @Valid @RequestBody UpdateNoteRequest request
     ) {
-        return ResponseEntity.ok(
-                updateOrderNoteService.handle(orderId, noteId, request.getNote())
-        );
+        return ResponseEntity.ok(updateOrderNoteService.handle(orderId, noteId, request.getNote()));
     }
 
-    /**
-     * Deletes a note from an order.
-     *
-     * <p>Deletion is blocked once the order has reached {@code IN_PREPARATION}
-     * or beyond — by that point the note is part of the kitchen's live
-     * communication record and must not disappear.</p>
-     *
-     * @param orderId the order the note belongs to
-     * @param noteId  the note to delete
-     * @return the updated order (remaining notes included)
-     */
+    /** Deletes a note from an order (blocked once IN_PREPARATION or beyond). */
     @DeleteMapping("/{orderId}/notes/{noteId}")
     public ResponseEntity<OrderResponse> deleteNote(
             @PathVariable Long orderId,
             @PathVariable Long noteId
     ) {
-        return ResponseEntity.ok(
-                deleteOrderNoteService.handle(orderId, noteId)
-        );
+        return ResponseEntity.ok(deleteOrderNoteService.handle(orderId, noteId));
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static List<CreateOrderRequest.OrderItemRequest> safeItems(CreateOrderRequest request) {
+        return request.getItems() == null ? Collections.emptyList() : request.getItems();
+    }
+
+    private static Pageable toPageable(int page, int size, String sort) {
+        String[] parts = sort.split(",");
+        String field = parts.length > 0 ? parts[0].trim() : "createdAt";
+        Sort.Direction dir = (parts.length > 1 && "asc".equalsIgnoreCase(parts[1].trim()))
+                ? Sort.Direction.ASC : Sort.Direction.DESC;
+        return PageRequest.of(page, size, Sort.by(dir, field));
+    }
+
+    private static List<OrderStatus> parseStatuses(String statusCsv) {
+        if (statusCsv == null || statusCsv.trim().isEmpty()) return null;
+        return Arrays.stream(statusCsv.split(","))
+                .map(String::trim).filter(s -> !s.isEmpty())
+                .map(OrderStatus::valueOf).collect(Collectors.toList());
     }
 }

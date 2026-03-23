@@ -28,6 +28,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 /**
  * Use case responsible for creating orders (DINE_IN / TAKE_AWAY / DELIVERY).
@@ -60,6 +61,7 @@ public class CreateOrderService {
 
     @Transactional
     public CreateOrderResult handle(CreateOrderCommand command) {
+
         if (command == null) throw new ValidationException(Map.of("command", "Command is required"));
 
         OrderType type = command.getType() == null ? OrderType.DINE_IN : command.getType();
@@ -170,6 +172,12 @@ public class CreateOrderService {
 
         order.setTotalCents(totalCents);
 
+    // Generate opaque tracking token for customer-facing orders.
+    // DINE_IN orders are managed by staff via POS — no public tracking needed.
+    if (type == OrderType.TAKE_AWAY || type == OrderType.DELIVERY) {
+        order.setTrackingToken(UUID.randomUUID().toString());
+    }
+
         OrderJpaEntity saved = orderRepository.save(order);
 
         // ✅ Fix 2: For DINE_IN, create the "shadow payment row" at order creation time
@@ -236,6 +244,7 @@ public class CreateOrderService {
                 saved.getStatus(),
                 resultDelivery,
                 resultPickup,
+                saved.getTrackingToken(),
                 resultItems
         );
     }

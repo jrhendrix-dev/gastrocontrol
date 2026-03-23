@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * JPA entity representing a restaurant order.
@@ -69,6 +70,14 @@ public class OrderJpaEntity {
      */
     @Column(name = "reopened", nullable = false)
     private boolean reopened = false;
+
+    /**
+     * Opaque UUID used in public-facing tracking URLs.
+     * Only set for TAKE_AWAY and DELIVERY orders — null for DINE_IN.
+     * Customers receive this token in their confirmation URL: /track/{token}
+     */
+    @Column(name = "tracking_token", length = 36, unique = true)
+    private String trackingToken;
 
     @Version
     @Column(name = "version", nullable = false)
@@ -243,6 +252,9 @@ public class OrderJpaEntity {
 
     public String getPickupNotes() { return pickupNotes; }
     public void setPickupNotes(String pickupNotes) { this.pickupNotes = pickupNotes; }
+
+    public String getTrackingToken() { return trackingToken; }
+    public void setTrackingToken(String trackingToken) { this.trackingToken = trackingToken; }
 
      public List<OrderNoteJpaEntity> getNotes() { return notes; }
 }

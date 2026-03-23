@@ -145,8 +145,12 @@ public class StartCustomerCheckoutService {
                 null
         ));
 
-        return new CustomerCheckoutResult(order.getId(), checkout.checkoutUrl());
+    return new CustomerCheckoutResult(
+        order.getId(),
+        checkout.checkoutUrl(),
+        order.getTrackingToken()   // may be null if CreateOrderService not patched yet
+    );
     }
 
-    public record CustomerCheckoutResult(long orderId, String checkoutUrl) {}
+    public record CustomerCheckoutResult(long orderId, String checkoutUrl, String trackingToken) {}
 }

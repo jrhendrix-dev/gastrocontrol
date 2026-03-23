@@ -96,6 +96,16 @@ public interface OrderRepository extends JpaRepository<OrderJpaEntity, Long>, Jp
             @Param("statuses") java.util.Set<OrderStatus> statuses
     );
 
+
+    /**
+     * Finds an order by its opaque public tracking token.
+     * Used by the customer tracking endpoint.
+     */
+    Optional<OrderJpaEntity> findByTrackingToken(String trackingToken);
+
+
+
+
     /**
      * Fast existence check for "table already has an active ticket" rules.
      */
