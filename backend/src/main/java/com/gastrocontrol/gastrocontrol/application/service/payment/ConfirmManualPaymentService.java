@@ -1,3 +1,4 @@
+// src/main/java/com/gastrocontrol/gastrocontrol/application/service/payment/ConfirmManualPaymentService.java
 package com.gastrocontrol.gastrocontrol.application.service.payment;
 
 import com.gastrocontrol.gastrocontrol.common.exception.NotFoundException;
@@ -16,11 +17,18 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
+/**
+ * Confirms a manual (cash) payment for an order.
+ *
+ * <p>Supports DINE_IN, TAKE_AWAY, and DELIVERY order types.
+ * TAKE_AWAY and DELIVERY cash orders are created by {@link com.gastrocontrol.gastrocontrol.application.service.customer.CustomerCashCheckoutService}
+ * and confirmed here when staff physically collects the cash at pickup or delivery.</p>
+ */
 @Service
 public class ConfirmManualPaymentService {
 
-    private final OrderRepository orderRepository;
-    private final PaymentRepository paymentRepository;
+    private final OrderRepository      orderRepository;
+    private final PaymentRepository    paymentRepository;
     private final OrderEventRepository orderEventRepository;
 
     public ConfirmManualPaymentService(
@@ -28,11 +36,24 @@ public class ConfirmManualPaymentService {
             PaymentRepository paymentRepository,
             OrderEventRepository orderEventRepository
     ) {
-        this.orderRepository = orderRepository;
-        this.paymentRepository = paymentRepository;
+        this.orderRepository      = orderRepository;
+        this.paymentRepository    = paymentRepository;
         this.orderEventRepository = orderEventRepository;
     }
 
+    /**
+     * Confirms a manual cash payment for the given order.
+     *
+     * <p>Supports DINE_IN, TAKE_AWAY, and DELIVERY orders.
+     * The payment must already exist with provider MANUAL, or a new MANUAL
+     * payment row will be created.</p>
+     *
+     * @param orderId         the order to confirm payment for
+     * @param manualReference optional reference string (e.g. "Efectivo", "Cash on delivery")
+     * @return the updated payment details
+     * @throws ValidationException if the order has a non-MANUAL payment provider
+     * @throws NotFoundException   if the order does not exist
+     */
     @Transactional
     public ConfirmManualPaymentResponse handle(Long orderId, String manualReference) {
         if (orderId == null) {
@@ -42,23 +63,21 @@ public class ConfirmManualPaymentService {
         var order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
 
-        // B2: manual payments are for dine-in only
-        if (order.getType() != OrderType.DINE_IN) {
-            throw new ValidationException(Map.of(
-                    "type",
-                    "Manual payment confirmation is only allowed for DINE_IN orders"
-            ));
+        // Manual payment is supported for all non-Stripe order types.
+        // DINE_IN: staff collects cash at the table.
+        // TAKE_AWAY: staff collects cash when customer picks up.
+        // DELIVERY: staff/driver collects cash on delivery.
+        if (order.getType() == null) {
+            throw new ValidationException(Map.of("type", "Order type is missing"));
         }
 
         int amountCents = order.getTotalCents();
         if (amountCents <= 0) {
             throw new ValidationException(Map.of(
-                    "amountCents",
-                    "Order total must be > 0 to confirm payment"
+                    "amountCents", "Order total must be > 0 to confirm payment"
             ));
         }
 
-        // Use a sensible default; if you later add restaurant currency config, swap this out.
         String currency = "eur";
 
         PaymentJpaEntity payment = paymentRepository.findByOrder_Id(orderId)
@@ -73,7 +92,7 @@ public class ConfirmManualPaymentService {
                     return paymentRepository.save(p);
                 });
 
-        // If a payment already exists, enforce provider consistency for B2
+        // Enforce provider consistency — cannot confirm STRIPE orders as manual
         if (payment.getProvider() != PaymentProvider.MANUAL) {
             throw new ValidationException(Map.of(
                     "provider",
@@ -81,15 +100,9 @@ public class ConfirmManualPaymentService {
             ));
         }
 
-        // Keep amount aligned with the order at the moment of confirmation
-        // (If you want to *forbid* mismatch instead, replace with a ValidationException)
-        if (payment.getAmountCents() != amountCents) {
-            // No setter exists currently; if you want strict alignment, add setAmountCents()
-            // Recommended: add setAmountCents(int) with validation.
-            // For now, we assume payment was created with order total and totals don't change late.
-        }
-
-        payment.setManualReference((manualReference == null || manualReference.isBlank()) ? null : manualReference.trim());
+        payment.setManualReference(
+                (manualReference == null || manualReference.isBlank()) ? null : manualReference.trim()
+        );
         payment.setStatus(PaymentStatus.SUCCEEDED);
         paymentRepository.save(payment);
 
@@ -98,7 +111,8 @@ public class ConfirmManualPaymentService {
                 "PAYMENT_MANUAL_CONFIRMED",
                 order.getStatus(),
                 order.getStatus(),
-                "Manual payment confirmed" + (payment.getManualReference() != null ? " (" + payment.getManualReference() + ")" : ""),
+                "Manual payment confirmed" + (payment.getManualReference() != null
+                        ? " (" + payment.getManualReference() + ")" : ""),
                 "STAFF",
                 null,
                 null
