@@ -10,6 +10,7 @@ import {
 import { CurrencyPipe, DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { StaffOrdersListApi } from '../../../core/api/staff/staff-orders-list.api';
+import { StaffOrdersApi } from '../../../core/api/staff/staff-orders.api';
 import { OrderResponse, OrderStatus, OrderType } from '../../../core/api/staff/staff.models';
 import { PagedResponse } from '../../../core/api/types/paged-response';
 
@@ -44,7 +45,8 @@ const ALL_TYPES: OrderType[] = ['DINE_IN', 'TAKE_AWAY', 'DELIVERY'];
   templateUrl: './staff-orders-list.page.html',
 })
 export class StaffOrdersListPage implements OnInit {
-  private readonly api = inject(StaffOrdersListApi);
+  private readonly api       = inject(StaffOrdersListApi);
+  private readonly ordersApi = inject(StaffOrdersApi);
 
   // ── Exposed constants for template ──────────────────────────────────────
   readonly allStatuses = ALL_STATUSES;
@@ -71,6 +73,16 @@ export class StaffOrdersListPage implements OnInit {
 
   /** The currently expanded order row (for the inline detail panel). */
   readonly expandedOrderId = signal<number | null>(null);
+
+  // ── Note management ───────────────────────────────────────────────────────
+  /** Per-order new note textarea values (keyed by orderId). */
+  readonly newNoteValues: Record<number, string> = {};
+  readonly addingNote          = signal<number | null>(null);
+  readonly editingNoteId       = signal<number | null>(null);
+  editingNoteValue             = '';
+  readonly savingNote          = signal(false);
+  readonly confirmDeleteNoteId = signal<number | null>(null);
+  readonly noteError           = signal<string | null>(null);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   readonly orders     = computed(() => this.result()?.content ?? []);
@@ -227,6 +239,67 @@ export class StaffOrdersListPage implements OnInit {
   trackNote    = (_: number, n: { id: number }) => n.id;
   /** Used for static number arrays such as the loading skeleton. */
   trackByIndex = (index: number) => index;
+
+  // ── Note management methods ───────────────────────────────────────────────
+
+  addNote(orderId: number): void {
+    const text = this.newNoteValues[orderId]?.trim(); if (!text) return;
+    this.addingNote.set(orderId);
+    this.ordersApi.addNote(orderId, { note: text }).subscribe({
+      next: updated => {
+        this.result.update(r => r ? {
+          ...r, content: r.content.map(o => o.id === updated.id ? updated : o)
+        } : r);
+        this.newNoteValues[orderId] = '';
+        this.addingNote.set(null);
+      },
+      error: err => { this.addingNote.set(null); this.noteError.set(this.extractNoteError(err)); },
+    });
+  }
+
+  startEditNote(noteId: number, current: string): void {
+    this.editingNoteId.set(noteId); this.editingNoteValue = current;
+    this.confirmDeleteNoteId.set(null);
+  }
+
+  cancelEditNote(): void { this.editingNoteId.set(null); this.editingNoteValue = ''; }
+
+  saveNote(orderId: number, noteId: number): void {
+    const text = this.editingNoteValue.trim(); if (!text) return;
+    this.savingNote.set(true);
+    this.ordersApi.updateNote(orderId, noteId, { note: text }).subscribe({
+      next: updated => {
+        this.result.update(r => r ? {
+          ...r, content: r.content.map(o => o.id === updated.id ? updated : o)
+        } : r);
+        this.cancelEditNote(); this.savingNote.set(false);
+      },
+      error: err => { this.savingNote.set(false); this.noteError.set(this.extractNoteError(err)); },
+    });
+  }
+
+  requestDeleteNote(noteId: number): void {
+    this.editingNoteId.set(null);
+    this.confirmDeleteNoteId.set(this.confirmDeleteNoteId() === noteId ? null : noteId);
+  }
+
+  cancelDeleteNote(): void { this.confirmDeleteNoteId.set(null); }
+
+  confirmDeleteNote(orderId: number, noteId: number): void {
+    this.confirmDeleteNoteId.set(null);
+    this.ordersApi.deleteNote(orderId, noteId).subscribe({
+      next: updated => this.result.update(r => r ? {
+        ...r, content: r.content.map(o => o.id === updated.id ? updated : o)
+      } : r),
+      error: err => this.noteError.set(this.extractNoteError(err)),
+    });
+  }
+
+  private extractNoteError(err: unknown): string {
+    const details = (err as any)?.error?.error?.details;
+    if (details) return Object.values(details).join(' ');
+    return (err as any)?.error?.error?.message ?? 'Error al gestionar la nota.';
+  }
 
   // ── Private helpers ───────────────────────────────────────────────────────
 

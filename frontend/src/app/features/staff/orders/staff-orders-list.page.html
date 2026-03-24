@@ -251,19 +251,95 @@
           <div class="space-y-4">
 
             <!-- Notes -->
-            <div *ngIf="order.notes.length">
+            <div>
               <div class="mb-2 text-xs font-semibold uppercase tracking-widest" style="opacity: 0.45;">
                 Notas ({{ order.notes.length }})
               </div>
-              <div class="space-y-1">
+
+              <div class="space-y-1" *ngIf="order.notes.length > 0">
                 <div
                   *ngFor="let n of order.notes; trackBy: trackNote"
                   class="rounded-lg px-3 py-2 text-xs"
                   style="background: rgba(230,184,92,0.12); border: 1px solid rgba(230,184,92,0.3);"
                 >
-                  📝 {{ n.note }}
-                  <span class="ml-1" style="opacity: 0.5;">· {{ n.authorRole }}</span>
+                  <!-- View mode -->
+                  <ng-container *ngIf="editingNoteId() !== n.id; else editNoteMode">
+                    <div class="flex items-start gap-2">
+                      <span>📝</span>
+                      <div class="flex-1 min-w-0">
+                        <p class="break-words" style="margin:0; color: var(--gc-ink);">{{ n.note }}</p>
+                        <p style="margin:0.2rem 0 0; opacity:0.5;">
+                          {{ n.authorRole ?? 'Staff' }}
+                          <span *ngIf="n.editedAt"> · editado</span>
+                        </p>
+                        <p *ngIf="n.originalNote"
+                           style="margin:0.2rem 0 0; opacity:0.4; font-style:italic;">
+                          Original: {{ n.originalNote }}
+                        </p>
+                      </div>
+                      <div class="flex gap-1 shrink-0">
+                        <button type="button" style="background:none;border:none;cursor:pointer;opacity:0.5;padding:0.1rem 0.2rem;"
+                                (click)="startEditNote(n.id, n.note)" title="Editar">✏️</button>
+                        <ng-container *ngIf="order.status === 'DRAFT' || order.status === 'PENDING'">
+                          <ng-container *ngIf="confirmDeleteNoteId() === n.id; else normalDelBtn">
+                            <button type="button"
+                                    style="font-size:0.65rem;font-weight:700;color:white;background:#b91c1c;border:none;border-radius:4px;padding:0.1rem 0.3rem;cursor:pointer;"
+                                    (click)="confirmDeleteNote(order.id, n.id)">¿Eliminar?</button>
+                            <button type="button"
+                                    style="background:none;border:none;cursor:pointer;opacity:0.5;"
+                                    (click)="cancelDeleteNote()">✕</button>
+                          </ng-container>
+                          <ng-template #normalDelBtn>
+                            <button type="button" style="background:none;border:none;cursor:pointer;opacity:0.5;padding:0.1rem 0.2rem;"
+                                    (click)="requestDeleteNote(n.id)" title="Eliminar">🗑️</button>
+                          </ng-template>
+                        </ng-container>
+                      </div>
+                    </div>
+                  </ng-container>
+                  <!-- Edit mode -->
+                  <ng-template #editNoteMode>
+                    <div class="flex flex-col gap-1">
+                      <textarea class="gc-input" rows="2" maxlength="500"
+                                style="font-size:0.8rem; resize:vertical;"
+                                [(ngModel)]="editingNoteValue"
+                                [disabled]="savingNote()"></textarea>
+                      <div class="flex gap-1">
+                        <button class="btn btn-primary btn-sm"
+                                style="font-size:0.7rem;"
+                                [disabled]="!editingNoteValue.trim() || savingNote()"
+                                (click)="saveNote(order.id, n.id)">
+                          {{ savingNote() ? 'Guardando…' : 'Guardar' }}
+                        </button>
+                        <button class="btn btn-outline btn-sm"
+                                style="font-size:0.7rem;"
+                                (click)="cancelEditNote()">Cancelar</button>
+                      </div>
+                    </div>
+                  </ng-template>
                 </div>
+              </div>
+
+              <!-- Note error -->
+              <div *ngIf="noteError()"
+                   class="mt-1 rounded-lg px-3 py-2 text-xs"
+                   style="background: rgba(220,38,38,0.06); color: #b91c1c; border: 1px solid rgba(220,38,38,0.2);">
+                {{ noteError() }}
+              </div>
+
+              <!-- Add note -->
+              <div class="mt-2 flex items-start gap-2">
+                <textarea class="gc-input flex-1 text-xs"
+                          rows="2" maxlength="500"
+                          placeholder="Añadir nota…"
+                          style="resize:vertical; min-height:44px;"
+                          [(ngModel)]="newNoteValues[order.id]"></textarea>
+                <button class="btn btn-outline btn-sm shrink-0"
+                        style="font-size:0.7rem; margin-top:0.1rem;"
+                        [disabled]="!newNoteValues[order.id]?.trim() || addingNote() === order.id"
+                        (click)="addNote(order.id)">
+                  {{ addingNote() === order.id ? '…' : '+ Nota' }}
+                </button>
               </div>
             </div>
 
