@@ -80,6 +80,53 @@ export class StaffPosPage implements OnInit, OnDestroy {
 
   private externosSub?: Subscription;
 
+  // ── Externos payment modal ──────────────────────────────────────────────
+  /** The order currently being paid via the payment modal from Externos. */
+  externosPayingOrder = signal<import('@app/app/core/api/staff/staff.models').OrderResponse | null>(null);
+
+  openExternosPaymentModal(order: import('@app/app/core/api/staff/staff.models').OrderResponse): void {
+    this.externosPayingOrder.set(order);
+    this.paymentError.set(null);
+    this.showPaymentModal.set(true);
+  }
+
+  onExternosPaymentConfirmed(event: import('./payment-modal/payment-modal.component').PaymentConfirmedEvent): void {
+    const order = this.externosPayingOrder();
+    if (!order) return;
+
+    const reference = event.reference ? `${event.method} · ${event.reference}` : event.method;
+    this.paymentLoading.set(true);
+    this.paymentError.set(null);
+
+    this.paymentApi.confirmAndFinalize(order.id, reference).subscribe({
+      next: () => {
+        this.paymentLoading.set(false);
+        this.showPaymentModal.set(false);
+        this.externosPayingOrder.set(null);
+        this.externosOrders.update(orders => orders.filter(o => o.id !== order.id));
+      },
+      error: (err) => {
+        this.paymentError.set(this.extractErrorMessage(err) ?? 'No se pudo procesar el pago.');
+        this.paymentLoading.set(false);
+      },
+    });
+  }
+
+  // ── Phone order form ─────────────────────────────────────────────────────
+  /** Whether the "nuevo pedido telefónico" form is open. */
+  phoneFormOpen      = signal(false);
+  phoneOrderType     = signal<'TAKE_AWAY' | 'DELIVERY'>('TAKE_AWAY');
+  phoneOrderLoading  = signal(false);
+  phoneOrderError    = signal<string | null>(null);
+  phoneOrderSuccess  = signal<number | null>(null); // orderId on success
+
+  // Plain fields bound via ngModel
+  phoneName    = '';
+  phonePhone   = '';
+  phoneNotes   = '';
+  phoneAddress = '';
+  phoneCity    = '';
+
   // ── Products / categories (existing) ─────────────────────────────────────
   catalogProducts    = signal<CatalogProductDto[]>([]);
   loadingCategories  = signal(false);
@@ -178,6 +225,64 @@ export class StaffPosPage implements OnInit, OnDestroy {
       },
       error: () => this.externosLoading.set(false),
     });
+  }
+
+  /** Submits a new phone order. */
+  submitPhoneOrder(): void {
+    if (!this.phoneName.trim()) { this.phoneOrderError.set('El nombre es obligatorio.'); return; }
+    if (this.phoneOrderType() === 'DELIVERY' && !this.phoneAddress.trim()) {
+      this.phoneOrderError.set('La dirección es obligatoria para delivery.'); return;
+    }
+    if (this.phoneOrderType() === 'DELIVERY' && !this.phoneCity.trim()) {
+      this.phoneOrderError.set('La ciudad es obligatoria para delivery.'); return;
+    }
+
+    this.phoneOrderLoading.set(true);
+    this.phoneOrderError.set(null);
+
+    const body: any = {
+      type:    this.phoneOrderType(),
+      name:    this.phoneName.trim(),
+      phone:   this.phonePhone.trim() || null,
+      notes:   this.phoneNotes.trim()   || null,
+      address: this.phoneAddress.trim() || null,
+      city:    this.phoneCity.trim()    || null,
+    };
+
+    this.http.post<any>('/api/staff/orders/phone', body).subscribe({
+      next: res => {
+        this.phoneOrderLoading.set(false);
+        this.phoneOrderSuccess.set(res.id);
+        this.resetPhoneForm();
+        this.phoneFormOpen.set(false);
+        // Load the new order into the right panel so staff can add items immediately
+        this.currentTable.set(null);  // deselect any table
+        this.order.set(res);          // show the phone order in the order panel
+        this.orderError.set(null);
+        this.refreshExternos();
+      },
+      error: err => {
+        this.phoneOrderLoading.set(false);
+        const details = err?.error?.error?.details;
+        if (details) {
+          this.phoneOrderError.set(Object.values(details).join(' '));
+        } else {
+          this.phoneOrderError.set(err?.error?.error?.message ?? 'Error al crear el pedido.');
+        }
+      },
+    });
+  }
+
+  resetPhoneForm(): void {
+    this.phoneName = ''; this.phonePhone = ''; this.phoneNotes = '';
+    this.phoneAddress = ''; this.phoneCity = '';
+    this.phoneOrderError.set(null);
+  }
+
+  closePhoneForm(): void {
+    this.phoneFormOpen.set(false);
+    this.phoneOrderSuccess.set(null);
+    this.resetPhoneForm();
   }
 
   /**
@@ -282,11 +387,21 @@ export class StaffPosPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Returns true if an order is SERVED and has a cash (MANUAL) payment pending.
-   * Used to show the "Cobrar en efectivo" button instead of the normal Finalizar.
+   * Returns true if the order is SERVED AND payment is not yet confirmed.
+   * Hides the cash button for orders already paid via Stripe (paymentStatus === 'SUCCEEDED').
    */
   externosNeedsCashCollection(order: OrderResponse): boolean {
-    return order.status === 'SERVED';
+    if (order.status !== 'SERVED') return false;
+    // If payment is already SUCCEEDED (e.g. Stripe paid), no cash collection needed
+    if ((order as any).paymentStatus === 'SUCCEEDED') return false;
+    return true;
+  }
+
+  /**
+   * Returns true if order is SERVED and already paid — staff just needs to finalize.
+   */
+  externosAlreadyPaid(order: OrderResponse): boolean {
+    return order.status === 'SERVED' && (order as any).paymentStatus === 'SUCCEEDED';
   }
 
   externosStatusLabel(status: string): string {
@@ -375,8 +490,20 @@ export class StaffPosPage implements OnInit, OnDestroy {
 
   addProduct(p: ProductResponse) {
     const table = this.currentTable();
+    const o     = this.order();
+
+    // Phone order — no table, but order already exists
+    if (!table && o) {
+      if (!this.canEdit()) return;
+      this.ordersApi.addItem(o.id, { productId: p.id, quantity: 1 }).subscribe({
+        next: (updated) => this.order.set(updated),
+        error: (err) => this.orderError.set(this.extractErrorMessage(err) ?? 'No se pudo añadir el producto.'),
+      });
+      return;
+    }
+
+    // Dine-in — requires a table
     if (!table) return;
-    const o = this.order();
     if (!o) { this.openDraftThenAdd(table.id, p.id); return; }
     if (!this.canEdit()) return;
     this.ordersApi.addItem(o.id, { productId: p.id, quantity: 1 }).subscribe({
@@ -442,8 +569,18 @@ export class StaffPosPage implements OnInit, OnDestroy {
 
   submitToKitchen() {
     const o = this.order(); if (!o) return;
+    const isPhoneOrder = !this.currentTable();
     this.ordersApi.submit(o.id).subscribe({
-      next: () => { this.loadOrder(o.id); this.refreshTables(); },
+      next: () => {
+        if (isPhoneOrder) {
+          // Phone order submitted — clear the panel and refresh externos
+          this.order.set(null);
+          this.refreshExternos();
+        } else {
+          this.loadOrder(o.id);
+          this.refreshTables();
+        }
+      },
       error: (err) => this.orderError.set(this.extractErrorMessage(err) ?? 'No se pudo enviar a cocina.'),
     });
   }

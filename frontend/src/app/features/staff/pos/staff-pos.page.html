@@ -89,6 +89,16 @@
             </span>
           </div>
           <div class="flex items-center gap-2">
+            <!-- New phone order button -->
+            <button
+              type="button"
+              class="rounded px-1.5 py-0.5 text-[11px] font-semibold transition"
+              style="background: var(--gc-brand); color: var(--gc-accent);"
+              (click)="$event.stopPropagation(); phoneFormOpen.set(true); phoneOrderSuccess.set(null)"
+              title="Nuevo pedido telefónico"
+            >
+              + Tel
+            </button>
             <button
               type="button"
               class="rounded p-0.5 text-black/30 hover:text-black/60 transition"
@@ -109,6 +119,80 @@
             </svg>
           </div>
         </button>
+
+        <!-- Phone order form -->
+        <div *ngIf="phoneFormOpen()"
+             class="mt-2 rounded-xl border border-black/15 p-3"
+             style="background: white;">
+
+          @if (phoneOrderSuccess()) {
+            <div class="rounded-lg p-2 text-xs font-semibold text-center"
+                 style="background: rgba(26,46,26,0.08); color: var(--gc-brand);">
+              ✓ Pedido #{{ phoneOrderSuccess() }} creado y enviado a cocina
+            </div>
+            <button type="button"
+                    class="btn btn-outline btn-sm w-full mt-2 text-xs"
+                    (click)="closePhoneForm()">Cerrar</button>
+          } @else {
+            <div class="mb-2 text-xs font-semibold" style="color: var(--gc-ink);">
+              📞 Nuevo pedido telefónico
+            </div>
+
+            <!-- Type selector -->
+            <div class="flex gap-1.5 mb-2">
+              <button type="button"
+                      class="flex-1 rounded-lg border py-1 text-xs font-semibold transition"
+                      [style.background]="phoneOrderType() === 'TAKE_AWAY' ? 'var(--gc-brand)' : 'white'"
+                      [style.color]="phoneOrderType() === 'TAKE_AWAY' ? 'var(--gc-accent)' : 'var(--gc-ink-muted)'"
+                      [style.border-color]="phoneOrderType() === 'TAKE_AWAY' ? 'var(--gc-brand)' : 'rgba(0,0,0,0.12)'"
+                      (click)="phoneOrderType.set('TAKE_AWAY')">
+                🥡 Recogida
+              </button>
+              <button type="button"
+                      class="flex-1 rounded-lg border py-1 text-xs font-semibold transition"
+                      [style.background]="phoneOrderType() === 'DELIVERY' ? 'var(--gc-brand)' : 'white'"
+                      [style.color]="phoneOrderType() === 'DELIVERY' ? 'var(--gc-accent)' : 'var(--gc-ink-muted)'"
+                      [style.border-color]="phoneOrderType() === 'DELIVERY' ? 'var(--gc-brand)' : 'rgba(0,0,0,0.12)'"
+                      (click)="phoneOrderType.set('DELIVERY')">
+                🛵 Delivery
+              </button>
+            </div>
+
+            <!-- Fields -->
+            <div class="space-y-1.5">
+              <input class="gc-input text-xs" type="text" placeholder="Nombre *"
+                     [(ngModel)]="phoneName" />
+              <input class="gc-input text-xs" type="tel" placeholder="Teléfono"
+                     [(ngModel)]="phonePhone" />
+              <input *ngIf="phoneOrderType() === 'DELIVERY'"
+                     class="gc-input text-xs" type="text" placeholder="Dirección *"
+                     [(ngModel)]="phoneAddress" />
+              <input *ngIf="phoneOrderType() === 'DELIVERY'"
+                     class="gc-input text-xs" type="text" placeholder="Ciudad *"
+                     [(ngModel)]="phoneCity" />
+              <textarea class="gc-input text-xs" rows="2"
+                        placeholder="Notas para cocina…"
+                        style="resize:vertical;"
+                        [(ngModel)]="phoneNotes"></textarea>
+            </div>
+
+            <div *ngIf="phoneOrderError()"
+                 class="mt-1.5 rounded-lg px-2 py-1 text-[11px]"
+                 style="background: rgba(220,38,38,0.06); color: #b91c1c; border: 1px solid rgba(220,38,38,0.2);">
+              {{ phoneOrderError() }}
+            </div>
+
+            <div class="flex gap-1.5 mt-2">
+              <button type="button" class="btn btn-outline btn-sm text-xs flex-1"
+                      (click)="closePhoneForm()">Cancelar</button>
+              <button type="button" class="btn btn-primary btn-sm text-xs flex-1"
+                      [disabled]="phoneOrderLoading()"
+                      (click)="submitPhoneOrder()">
+                {{ phoneOrderLoading() ? '…' : 'Crear pedido' }}
+              </button>
+            </div>
+          }
+        </div>
 
         <!-- Section body -->
         <div *ngIf="externosOpen()" class="mt-2 space-y-2">
@@ -193,17 +277,27 @@
             </div>
 
             <!-- Action buttons -->
-            <!-- SERVED: show cash collection button -->
+            <!-- SERVED + unpaid: open payment modal (same as dine-in) -->
             <button
-              *ngIf="ext.status === 'SERVED'"
+              *ngIf="externosNeedsCashCollection(ext)"
               type="button"
               class="btn btn-success w-full text-xs py-1.5"
               [disabled]="externosIsChanging(ext.id)"
-              (click)="externosCashCollect(ext)"
+              (click)="openExternosPaymentModal(ext)"
             >
-              {{ externosIsChanging(ext.id) ? '…' : '💵 Cobrar en efectivo →' }}
+              💳 Cobrar
             </button>
-            <!-- All other statuses: advance normally -->
+            <!-- SERVED + already paid via Stripe: just finalize -->
+            <button
+              *ngIf="externosAlreadyPaid(ext)"
+              type="button"
+              class="btn btn-primary w-full text-xs py-1.5"
+              [disabled]="externosIsChanging(ext.id)"
+              (click)="externosAdvance(ext)"
+            >
+              {{ externosIsChanging(ext.id) ? '…' : 'Finalizar →' }}
+            </button>
+            <!-- All other active statuses: advance normally -->
             <button
               *ngIf="externosNextStatus(ext.status) && ext.status !== 'SERVED'"
               type="button"
@@ -221,13 +315,15 @@
 
     <!-- Right side -->
     <div class="gc-card p-4 overflow-hidden">
-      <ng-container *ngIf="currentTable(); else pickTable">
+      <ng-container *ngIf="currentTable() || order(); else pickTable">
         <!-- Top summary + actions -->
         <div class="mb-4 flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <div class="text-xs text-black/60">Mesa</div>
+            <div class="text-xs text-black/60">
+              {{ currentTable() ? 'Mesa' : (order()?.type === 'TAKE_AWAY' ? '🥡 Recogida' : '🛵 Delivery') }}
+            </div>
             <div class="text-lg font-semibold tracking-tight">
-              {{ currentTable()?.label }}
+              {{ currentTable()?.label ?? (order()?.pickup?.name ?? order()?.delivery?.name ?? 'Pedido telefónico') }}
             </div>
 
             <div class="mt-2 flex flex-wrap items-center gap-2">
@@ -621,10 +717,10 @@
   </div>
   <gc-payment-modal
     [open]="showPaymentModal()"
-    [totalCents]="order()?.totalCents ?? 0"
+    [totalCents]="externosPayingOrder()?.totalCents ?? order()?.totalCents ?? 0"
     [loading]="paymentLoading()"
     [error]="paymentError()"
-    (confirmed)="onPaymentConfirmed($event)"
-    (closed)="showPaymentModal.set(false)"
+    (confirmed)="externosPayingOrder() ? onExternosPaymentConfirmed($event) : onPaymentConfirmed($event)"
+    (closed)="showPaymentModal.set(false); externosPayingOrder.set(null)"
   />
 </div>

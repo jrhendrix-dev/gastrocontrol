@@ -3,6 +3,8 @@ package com.gastrocontrol.gastrocontrol.dto.staff;
 
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderStatus;
 import com.gastrocontrol.gastrocontrol.domain.enums.OrderType;
+import com.gastrocontrol.gastrocontrol.domain.enums.PaymentProvider;
+import com.gastrocontrol.gastrocontrol.domain.enums.PaymentStatus;
 import com.gastrocontrol.gastrocontrol.dto.order.DeliverySnapshotDto;
 import com.gastrocontrol.gastrocontrol.dto.order.PickupSnapshotDto;
 
@@ -12,53 +14,35 @@ import java.util.List;
 /**
  * Response payload for a staff-facing order.
  *
- * <p>Always includes {@link OrderType}. Delivery / pickup snapshots are included
- * only when relevant to the order type. {@code createdAt} is always present and
- * is used by the Kitchen Display System to compute elapsed time and urgency.</p>
+ * <p>Payment summary fields ({@code paymentProvider}, {@code paymentStatus}) are
+ * populated when a payment record exists. Both are {@code null} for orders with
+ * no payment row yet. Frontend should treat {@code null} as "payment unknown".</p>
  */
 public class OrderResponse {
 
     private Long id;
     private OrderType type;
-
-    /** Present only for DINE_IN orders. */
     private Long tableId;
-
     private int totalCents;
     private OrderStatus status;
-
-    /**
-     * True when the order has been reopened by a manager and is pending a
-     * financial adjustment via {@code POST /actions/process-adjustment}.
-     *
-     * <p>While {@code true}:</p>
-     * <ul>
-     *   <li>Item modifications are permitted even if payment was already SUCCEEDED.</li>
-     *   <li>Transitioning to FINISHED is blocked until the adjustment is processed.</li>
-     * </ul>
-     *
-     * <p>Defaults to {@code false} for all normal orders.</p>
-     */
     private boolean reopened;
-
-    /**
-     * When the order was first created.
-     * Serialised as an ISO-8601 string by Jackson ({@code WRITE_DATES_AS_TIMESTAMPS=false}).
-     */
     private Instant createdAt;
-
-    /** Present only for DELIVERY orders. */
     private DeliverySnapshotDto delivery;
-
-    /** Present only for TAKE_AWAY orders. */
     private PickupSnapshotDto pickup;
-
     private List<OrderItemResponse> items;
-
-    /** Notes left by staff, sorted oldest-first. May be empty but never null. */
     private List<OrderNoteResponse> notes;
 
-    // ── Getters / setters ────────────────────────────────────────────────────
+    /**
+     * The payment provider: {@code STRIPE} for online orders, {@code MANUAL} for cash/POS.
+     * {@code null} if no payment row exists yet.
+     */
+    private PaymentProvider paymentProvider;
+
+    /**
+     * Current payment status: {@code REQUIRES_PAYMENT} (unpaid) or {@code SUCCEEDED} (paid).
+     * {@code null} if no payment row exists yet.
+     */
+    private PaymentStatus paymentStatus;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -93,17 +77,13 @@ public class OrderResponse {
     public List<OrderNoteResponse> getNotes() { return notes; }
     public void setNotes(List<OrderNoteResponse> notes) { this.notes = notes; }
 
-    // ── Nested DTOs ──────────────────────────────────────────────────────────
+    public PaymentProvider getPaymentProvider() { return paymentProvider; }
+    public void setPaymentProvider(PaymentProvider paymentProvider) { this.paymentProvider = paymentProvider; }
 
-    /**
-     * Represents a single line item within an order.
-     */
+    public PaymentStatus getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
     public static class OrderItemResponse {
-
-        /**
-         * Primary key of the order line (order_items.id).
-         * This is NOT the product id — it uniquely identifies this line within the order.
-         */
         private Long id;
         private Long productId;
         private String name;
@@ -112,61 +92,34 @@ public class OrderResponse {
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
-
         public Long getProductId() { return productId; }
         public void setProductId(Long productId) { this.productId = productId; }
-
         public String getName() { return name; }
         public void setName(String name) { this.name = name; }
-
         public int getQuantity() { return quantity; }
         public void setQuantity(int quantity) { this.quantity = quantity; }
-
         public int getUnitPriceCents() { return unitPriceCents; }
         public void setUnitPriceCents(int unitPriceCents) { this.unitPriceCents = unitPriceCents; }
     }
 
-    /**
-     * Represents a single staff note attached to an order.
-     *
-     * <p>Edit audit fields:</p>
-     * <ul>
-     *   <li>{@code originalNote} — the text before the very first edit; {@code null} if never edited.</li>
-     *   <li>{@code editedAt} — timestamp of the most recent edit; {@code null} if never edited.</li>
-     * </ul>
-     */
     public static class OrderNoteResponse {
-
         private Long id;
         private String note;
         private String authorRole;
         private Instant createdAt;
-
-        /**
-         * The original text before the first edit. {@code null} if the note has never been edited.
-         */
         private String originalNote;
-
-        /**
-         * When the note was last edited. {@code null} if the note has never been edited.
-         */
         private Instant editedAt;
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
-
         public String getNote() { return note; }
         public void setNote(String note) { this.note = note; }
-
         public String getAuthorRole() { return authorRole; }
         public void setAuthorRole(String authorRole) { this.authorRole = authorRole; }
-
         public Instant getCreatedAt() { return createdAt; }
         public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-
         public String getOriginalNote() { return originalNote; }
         public void setOriginalNote(String originalNote) { this.originalNote = originalNote; }
-
         public Instant getEditedAt() { return editedAt; }
         public void setEditedAt(Instant editedAt) { this.editedAt = editedAt; }
     }

@@ -17,6 +17,7 @@ import com.gastrocontrol.gastrocontrol.application.service.order.CancelOrderServ
 import com.gastrocontrol.gastrocontrol.application.service.order.ProcessOrderAdjustmentService;
 import com.gastrocontrol.gastrocontrol.application.service.order.ProcessOrderAdjustmentCommand;
 import com.gastrocontrol.gastrocontrol.application.service.order.ProcessOrderAdjustmentResult;
+import com.gastrocontrol.gastrocontrol.application.service.order.CreatePhoneOrderService;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -51,6 +52,7 @@ public class StaffOrderController {
     private final AddOrderNoteService addOrderNoteService;
     private final UpdateOrderNoteService updateOrderNoteService;
     private final DeleteOrderNoteService deleteOrderNoteService;
+    private final CreatePhoneOrderService createPhoneOrderService;
 
     public StaffOrderController(
             CreateOrderService createOrderService,
@@ -67,7 +69,8 @@ public class StaffOrderController {
             ProcessOrderAdjustmentService processOrderAdjustmentService,
             AddOrderNoteService addOrderNoteService,
             UpdateOrderNoteService updateOrderNoteService,
-            DeleteOrderNoteService deleteOrderNoteService
+            DeleteOrderNoteService deleteOrderNoteService,
+            CreatePhoneOrderService createPhoneOrderService
     ) {
         this.createOrderService = createOrderService;
         this.changeOrderStatusService = changeOrderStatusService;
@@ -84,6 +87,7 @@ public class StaffOrderController {
         this.addOrderNoteService = addOrderNoteService;
         this.updateOrderNoteService = updateOrderNoteService;
         this.deleteOrderNoteService = deleteOrderNoteService;
+        this.createPhoneOrderService = createPhoneOrderService;
     }
 
     @PostMapping
@@ -121,6 +125,31 @@ public class StaffOrderController {
                 new CreateDraftOrderCommand(request.getType(), request.getTableId())
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(getOrderService.handle(result.getOrderId()));
+    }
+
+    /**
+     * Creates a TAKE_AWAY or DELIVERY order from a customer phone call.
+     *
+     * <p>The order starts as PENDING (sent straight to the kitchen queue) with a
+     * MANUAL / REQUIRES_PAYMENT row so staff can confirm cash collection later.
+     * Items are added after creation via {@code POST /{orderId}/items}.</p>
+     *
+     * @param req customer details and order type
+     * @return 201 with the full order response
+     */
+    @PostMapping("/phone")
+    public ResponseEntity<OrderResponse> createPhoneOrder(
+            @Valid @RequestBody CreatePhoneOrderRequest req
+    ) {
+        long orderId = createPhoneOrderService.handle(new CreatePhoneOrderService.PhoneOrderCommand(
+                req.getType(),
+                req.getName(),
+                req.getPhone(),
+                req.getNotes(),
+                req.getAddress(),
+                req.getCity()
+        ));
+        return ResponseEntity.status(HttpStatus.CREATED).body(getOrderService.handle(orderId));
     }
 
     /** Adds an item to an existing order. */
@@ -197,9 +226,8 @@ public class StaffOrderController {
     /**
      * Lists orders with optional filters including createdAt and closedAt ranges.
      *
-     * <p>Use {@code closedFrom}/{@code closedTo} for revenue dashboards — this filters
-     * by when the order was finalized, not when it was placed. This correctly captures
-     * orders created days ago but finished today.</p>
+     * <p>Use {@code closedFrom}/{@code closedTo} for revenue dashboards — captures
+     * orders placed on any day but finalized today.</p>
      */
     @GetMapping
     public ResponseEntity<PagedResponse<OrderResponse>> listOrders(
@@ -250,9 +278,7 @@ public class StaffOrderController {
         return ResponseEntity.ok(cancelOrderService.handle(orderId));
     }
 
-    /**
-     * Processes the financial adjustment for a reopened and modified order.
-     */
+    /** Processes the financial adjustment for a reopened and modified order. */
     @PostMapping("/{orderId}/actions/process-adjustment")
     public ResponseEntity<ApiResponse<ProcessOrderAdjustmentResult>> processAdjustment(
             @PathVariable Long orderId,

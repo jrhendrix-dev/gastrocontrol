@@ -12,6 +12,10 @@ export type OrderStatus =
   | 'CANCELLED'
   | string;
 
+export type PaymentProvider = 'STRIPE' | 'MANUAL';
+
+export type PaymentStatus   = 'REQUIRES_PAYMENT' | 'SUCCEEDED' | 'FAILED' | 'REFUNDED';
+
 // ── Table models ──────────────────────────────────────────────────────────────
 
 export interface DiningTableActiveOrderSummary {
@@ -88,6 +92,12 @@ export interface OrderResponse {
     * a financial adjustment. While true, the order cannot be FINISHED.
    */
    reopened?: boolean;
+
+  /** Payment provider. 'STRIPE' for online orders, 'MANUAL' for cash/POS. null if no payment yet. */
+  paymentProvider?: PaymentProvider | null;
+
+  /** Current payment status. null if no payment row exists yet. */
+  paymentStatus?: PaymentStatus | null;
 
   /** Present only for TAKE_AWAY orders. */
   pickup?: { name: string | null; phone: string | null; notes: string | null } | null;
