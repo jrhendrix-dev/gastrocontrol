@@ -1,5 +1,12 @@
 // src/app/layout/navbar/navbar.component.ts
-import { Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { NgFor, NgIf } from '@angular/common';
 import { AuthService } from '../../core/auth/auth.service';
@@ -14,6 +21,13 @@ type NavItem = {
   rolesAny?: string[];
 };
 
+/**
+ * Main navigation bar for GastroControl.
+ *
+ * When running as a portfolio demo (base href = /gastrocontrol/), a
+ * "Volver al portfolio" link is shown so visitors can return to the
+ * main portfolio site without using the browser back button.
+ */
 @Component({
   selector: 'gc-navbar',
   standalone: true,
@@ -21,48 +35,59 @@ type NavItem = {
   templateUrl: './navbar.component.html',
 })
 export class NavbarComponent {
-  auth = inject(AuthService);
+  auth   = inject(AuthService);
   private router = inject(Router);
-  private host = inject(ElementRef<HTMLElement>);
+  private host   = inject(ElementRef<HTMLElement>);
 
-  open = false;
+  open        = false;
   accountOpen = false;
+
+  /**
+   * True when the app is mounted at /gastrocontrol/ (portfolio demo mode).
+   * Drives the "Volver al portfolio" button visibility.
+   */
+  readonly isPortfolioDemo = document.querySelector('base')
+    ?.getAttribute('href')
+    ?.includes('/gastrocontrol') ?? false;
+
+  /** URL to return to the main portfolio page. */
+  readonly portfolioUrl = '/';
 
   private modeSig = signal<NavMode | null>(null);
   mode = computed<NavMode>(() => this.modeSig() ?? this.inferredMode());
 
   private readonly items: NavItem[] = [
     // Public/customer
-    { label: 'Inicio',      route: '/',              mode: 'public' },
-    { label: 'Menú',        route: '/menu',           mode: 'public' },
-    { label: 'Mi pedido',   route: '/order/current',  mode: 'public', requiresAuth: true },
+    { label: 'Inicio',    route: '/',             mode: 'public' },
+    { label: 'Menú',      route: '/menu',          mode: 'public' },
+    { label: 'Mi pedido', route: '/order/current', mode: 'public', requiresAuth: true },
 
     // Staff
     { label: 'POS',     route: '/staff/pos',     mode: 'staff', rolesAny: ['ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN'] },
     { label: 'Pedidos', route: '/staff/orders',  mode: 'staff', rolesAny: ['ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN'] },
     { label: 'Cocina',  route: '/staff/kitchen', mode: 'staff', rolesAny: ['ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN'] },
 
-    // Admin panel — visible to MANAGER and ADMIN
-    { label: 'Admin',   route: '/admin',          mode: 'staff', rolesAny: ['ROLE_MANAGER', 'ROLE_ADMIN'] },
+    // Admin panel
+    { label: 'Admin', route: '/admin', mode: 'staff', rolesAny: ['ROLE_MANAGER', 'ROLE_ADMIN'] },
   ];
 
   inferredMode = computed<NavMode>(() => {
     const roles = this.auth.roles();
-    return (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_STAFF') || roles.includes('ROLE_MANAGER'))
+    return roles.includes('ROLE_ADMIN') || roles.includes('ROLE_STAFF') || roles.includes('ROLE_MANAGER')
       ? 'staff'
       : 'public';
   });
 
   visibleItems = computed<NavItem[]>(() => {
     const inferred = this.inferredMode();
-    const mode = inferred === 'public' ? 'public' : this.mode();
-    const roles = this.auth.roles();
+    const mode     = inferred === 'public' ? 'public' : this.mode();
+    const roles    = this.auth.roles();
     const loggedIn = this.auth.loggedIn();
 
-    return this.items.filter((i) => {
+    return this.items.filter(i => {
       if (i.mode && i.mode !== mode) return false;
       if (i.requiresAuth && !loggedIn) return false;
-      if (i.rolesAny?.length) return i.rolesAny.some((r) => roles.includes(r));
+      if (i.rolesAny?.length) return i.rolesAny.some(r => roles.includes(r));
       return true;
     });
   });
@@ -75,8 +100,7 @@ export class NavbarComponent {
   }
 
   toggleAccountMenu() { this.accountOpen = !this.accountOpen; }
-
-  closeMenus() { this.accountOpen = false; this.open = false; }
+  closeMenus()        { this.accountOpen = false; this.open = false; }
 
   goHome(ev: MouseEvent) {
     const path = this.router.url.replace(/[?#].*$/, '');
@@ -96,9 +120,9 @@ export class NavbarComponent {
 
   panelLabel(): string {
     const roles = this.auth.roles();
-    if (roles.includes('ROLE_ADMIN')) return 'Admin';
+    if (roles.includes('ROLE_ADMIN'))   return 'Admin';
     if (roles.includes('ROLE_MANAGER')) return 'Manager';
-    if (roles.includes('ROLE_STAFF')) return 'Staff';
+    if (roles.includes('ROLE_STAFF'))   return 'Staff';
     return 'Panel';
   }
 

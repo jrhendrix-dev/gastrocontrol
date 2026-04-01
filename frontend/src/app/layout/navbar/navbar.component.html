@@ -30,6 +30,20 @@
       <!-- Right side -->
       <div class="flex items-center justify-end gap-3">
 
+        <!-- Portfolio return link — only shown in demo mode -->
+        <a *ngIf="isPortfolioDemo"
+           href="/jonathan-hendrix.dev"
+           class="flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-semibold transition hover:bg-white/10 whitespace-nowrap"
+           style="border-color: rgba(255,255,255,0.4)"
+           title="Volver al portfolio de Jonathan Hendrix">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          Portfolio
+        </a>
+
         <!-- Demo mode toggle -->
         <button class="rounded-md border px-3 py-2 font-semibold transition hover:bg-white/10"
                 style="border-color: rgba(255,255,255,0.6)"
@@ -115,6 +129,19 @@
 
     <!-- Mobile menu -->
     <div *ngIf="open" class="border-t border-white/10 md:hidden">
+
+      <!-- Portfolio return link — mobile -->
+      <a *ngIf="isPortfolioDemo"
+         href="https://jonathan-hendrix.dev"
+         class="flex items-center gap-2 px-4 py-3 hover:bg-white/10 border-b border-white/10">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Volver al portfolio
+      </a>
+
       <a *ngFor="let item of items; trackBy: trackItem"
          [routerLink]="item.route"
          class="block px-4 py-3 hover:bg-white/10"
