@@ -16,7 +16,8 @@ public class CorsConfig {
         CorsConfiguration c = new CorsConfiguration();
 
         // Explicit origin required when allowCredentials=true
-        c.setAllowedOrigins(List.of("http://localhost:4200"));
+        c.setAllowedOrigins(List.of("http://localhost:4200", "https://jonathan-hendrix.dev"));
+
         c.setAllowCredentials(true);
 
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

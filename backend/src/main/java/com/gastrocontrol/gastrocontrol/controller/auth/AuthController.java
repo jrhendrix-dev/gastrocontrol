@@ -35,6 +35,9 @@ public class AuthController {
     @Value("${security.refresh.expiration-days:14}")
     private long refreshExpirationDays;
 
+    @Value("${security.refresh.cookie.path:/api/auth/refresh}")
+    private String refreshCookiePath;
+
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody RegisterRequest req) {
         RegisterResponse created = authService.register(req);
@@ -107,7 +110,7 @@ public class AuthController {
         ResponseCookie cookie = ResponseCookie.from(refreshCookieName, refreshTokenRaw)
                 .httpOnly(true)
                 .secure(refreshSecure)
-                .path("/api/auth/refresh") // tight scope
+                .path(refreshCookiePath) // tight scope
                 .maxAge(Duration.ofDays(refreshExpirationDays))
                 .sameSite(refreshSameSite)
                 .build();
@@ -119,7 +122,7 @@ public class AuthController {
         ResponseCookie cookie = ResponseCookie.from(refreshCookieName, "")
                 .httpOnly(true)
                 .secure(refreshSecure)
-                .path("/api/auth/refresh")
+                .path(refreshCookiePath)
                 .maxAge(Duration.ZERO)
                 .sameSite(refreshSameSite)
                 .build();

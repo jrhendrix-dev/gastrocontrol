@@ -1,0 +1,79 @@
+# docker-compose.prod.yml
+# Production deployment for GastroControl on the portfolio server.
+#
+# The backend container joins business-first-overhaul_default so that
+# bfe_web (Nginx) can proxy /gastrocontrol/api/ to it by container name.
+# The frontend is served statically by bfe_web — no frontend container needed.
+# Stripe CLI is not included — webhooks arrive through Nginx in production.
+
+services:
+
+  db:
+    image: mysql:8.0
+    container_name: gastrocontrol_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-gastrocontrol}
+      MYSQL_USER: ${DB_USER:-gastrocontrol}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - gastro_mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - gastrocontrol_internal
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gastrocontrol_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-gastrocontrol}
+      DB_USER: ${DB_USER:-gastrocontrol}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      COOKIE_PATH: ${COOKIE_PATH:-/api/auth/refresh}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAILGUN_API_KEY: ${MAILGUN_API_KEY:-}
+      MAILGUN_DOMAIN: ${MAILGUN_DOMAIN:-}
+      MAILGUN_BASE_URL: ${MAILGUN_BASE_URL:-https://api.eu.mailgun.net}
+      MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL:-no-reply@jonathan-hendrix.dev}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-GastroControl}
+      STRIPE_API_KEY: ${STRIPE_API_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_CURRENCY: ${STRIPE_CURRENCY:-eur}
+      STRIPE_VERIFY_WEBHOOK_SIGNATURE: "false"
+      STRIPE_CHECKOUT_SUCCESS_URL: ${STRIPE_CHECKOUT_SUCCESS_URL:-https://jonathan-hendrix.dev/gastrocontrol/order/confirm}
+      STRIPE_CHECKOUT_CANCEL_URL: ${STRIPE_CHECKOUT_CANCEL_URL:-https://jonathan-hendrix.dev/gastrocontrol/order}
+      APP_PUBLIC_BASE_URL: ${APP_PUBLIC_BASE_URL:-https://jonathan-hendrix.dev/gastrocontrol}
+      APP_FRONTEND_BASE_URL: ${APP_FRONTEND_BASE_URL:-https://jonathan-hendrix.dev/gastrocontrol}
+    networks:
+      - gastrocontrol_internal   # talks to MySQL
+      - bfe_network              # reachable by bfe_web Nginx
+    expose:
+      - "8080"
+
+networks:
+  gastrocontrol_internal:
+    driver: bridge
+
+  bfe_network:
+    external: true
+    name: business-first-overhaul_default
+
+volumes:
+  gastro_mysql_data:
