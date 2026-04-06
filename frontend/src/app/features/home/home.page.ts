@@ -17,6 +17,13 @@ import { AuthService } from '../../core/auth/auth.service';
         </p>
 
         <div class="mt-6 flex flex-wrap gap-3">
+          <!-- Try Demo — most prominent CTA -->
+          <a routerLink="/demo"
+             style="background:#1a2e1a; color:#c8a96e; padding: 0.6rem 1.4rem;
+                    border-radius:8px; font-weight:700; text-decoration:none;
+                    font-size:1rem; border: 2px solid #1a2e1a;">
+            🚀 Probar Demo
+          </a>
           <a routerLink="/login" class="btn btn-primary">Login</a>
           <a routerLink="/staff/pos" class="btn btn-outline">Ir a POS</a>
           <a routerLink="/menu" class="btn btn-outline">Ver menú</a>

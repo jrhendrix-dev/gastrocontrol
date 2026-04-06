@@ -69,6 +69,7 @@ public class MeService {
         if (!user.isActive()) {
             throw new BusinessRuleViolationException(Map.of("account", "User is disabled"));
         }
+        rejectIfDemoAccount(user);
 
         if (!passwordEncoder.matches(req.currentPassword(), user.getPassword())) {
             throw new ValidationException(Map.of("currentPassword", "Current password is incorrect"));
@@ -98,6 +99,7 @@ public class MeService {
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (!user.isActive()) throw new BusinessRuleViolationException(Map.of("account", "User is disabled"));
+        rejectIfDemoAccount(user);
 
         if (!passwordEncoder.matches(req.password(), user.getPassword())) {
             throw new ValidationException(Map.of("password", "Password is incorrect"));
@@ -178,6 +180,7 @@ public class MeService {
         if (!user.isActive()) {
             throw new BusinessRuleViolationException(Map.of("account", "User is disabled"));
         }
+        rejectIfDemoAccount(user);
 
         if (req.firstName() != null) user.setFirstName(normalize(req.firstName()));
         if (req.lastName() != null) user.setLastName(normalize(req.lastName()));
@@ -208,6 +211,20 @@ public class MeService {
         if (s == null) return null;
         String trimmed = s.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+
+    /**
+     * Throws a {@link BusinessRuleViolationException} if the authenticated user
+     * is a demo account. Demo accounts are read-only to prevent misuse.
+     *
+     * @param user the authenticated user entity
+     */
+    private void rejectIfDemoAccount(UserJpaEntity user) {
+        if (user.getEmail() != null && user.getEmail().endsWith("@gastro.demo")) {
+            throw new BusinessRuleViolationException(
+                    Map.of("account", "Las cuentas demo son de solo lectura y no pueden modificarse"));
+        }
     }
 
 }

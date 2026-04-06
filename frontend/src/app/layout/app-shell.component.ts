@@ -9,6 +9,7 @@ import { ToastContainerComponent } from '../core/ui/toast/toast-container.compon
 import { DrawerComponent } from '../core/ui/drawer/drawer.component';
 import { DrawerService } from '../core/ui/drawer/drawer.service';
 import { AuthService } from '../core/auth/auth.service';
+import { DemoBannerComponent } from '../features/demo/demo-banner.component';
 
 @Component({
   standalone: true,
@@ -21,8 +22,10 @@ import { AuthService } from '../core/auth/auth.service';
     FooterComponent,
     ToastContainerComponent,
     DrawerComponent,
+    DemoBannerComponent,
   ],
   template: `
+    <app-demo-banner />
     <gc-navbar />
 
     <main class="min-h-[calc(100vh-var(--gc-nav-height))]">

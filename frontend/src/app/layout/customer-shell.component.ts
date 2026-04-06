@@ -4,6 +4,7 @@ import { RouterOutlet, RouterLink, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CartService } from '../core/cart/cart.service';
 import { AuthService } from '../core/auth/auth.service';
+import { DemoBannerComponent } from '../features/demo/demo-banner.component';
 
 /**
  * Shell wrapper for all customer-facing pages.
@@ -16,10 +17,11 @@ import { AuthService } from '../core/auth/auth.service';
 @Component({
   selector: 'gc-customer-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, CommonModule],
+  imports: [RouterOutlet, RouterLink, CommonModule, DemoBannerComponent],
   template: `
     <div class="customer-shell">
 
+      <app-demo-banner />
       <!-- ── Top navbar ─────────────────────────────────────────────── -->
       <header class="customer-nav">
         <div class="nav-inner">

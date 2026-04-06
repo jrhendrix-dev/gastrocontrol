@@ -81,5 +81,13 @@ export const routes: Routes = [
     ],
   },
 
+  // Demo
+
+  {
+    path: 'demo',
+    loadComponent: () =>
+      import('./features/demo/demo.page').then(m => m.DemoPageComponent),
+  },
+
   { path: '**', redirectTo: '' },
 ];
