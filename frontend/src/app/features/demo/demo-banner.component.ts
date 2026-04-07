@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { DemoSessionStore } from '../../core/demo/demo-session.store';
@@ -19,7 +19,7 @@ import { AuthService } from '../../core/auth/auth.service';
         <span class="demo-info">
           Sesión de demo activa como
           <strong>{{ demoStore.role() }}</strong>
-          · expira en <strong>{{ minutesDisplay }}</strong>
+          · expira en <strong>{{ minutesDisplay() }}</strong>
         </span>
         <button class="demo-exit" (click)="exitDemo()">
           Salir del demo
@@ -44,7 +44,6 @@ import { AuthService } from '../../core/auth/auth.service';
       font-size: 0.875rem;
       box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
     }
-
     .demo-badge {
       background: #f0a500;
       color: #1a2e1a;
@@ -54,15 +53,12 @@ import { AuthService } from '../../core/auth/auth.service';
       font-size: 0.75rem;
       letter-spacing: 0.05em;
     }
-
     .demo-info {
       color: #ccc;
     }
-
     .demo-info strong {
       color: white;
     }
-
     .demo-exit {
       background: transparent;
       border: 1px solid #ccc;
@@ -74,7 +70,6 @@ import { AuthService } from '../../core/auth/auth.service';
       margin-left: 1rem;
       transition: background 0.2s;
     }
-
     .demo-exit:hover {
       background: rgba(255,255,255,0.1);
     }
@@ -84,16 +79,15 @@ export class DemoBannerComponent implements OnInit, OnDestroy {
   readonly demoStore = inject(DemoSessionStore);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly cdr = inject(ChangeDetectorRef);
 
-  minutesDisplay = '';
+  readonly minutesDisplay = signal('');
   private timer: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
     this.updateDisplay();
     this.timer = setInterval(() => {
+      this.demoStore.tick(); // ← triggers signal recomputation
       this.updateDisplay();
-      this.cdr.markForCheck();
       if (!this.demoStore.isActive()) {
         this.exitDemo();
       }
@@ -115,9 +109,9 @@ export class DemoBannerComponent implements OnInit, OnDestroy {
     if (mins >= 60) {
       const h = Math.floor(mins / 60);
       const m = mins % 60;
-      this.minutesDisplay = m > 0 ? `${h}h ${m}m` : `${h}h`;
+      this.minutesDisplay.set(m > 0 ? `${h}h ${m}m` : `${h}h`);
     } else {
-      this.minutesDisplay = `${mins}m`;
+      this.minutesDisplay.set(`${mins}m`);
     }
   }
 }

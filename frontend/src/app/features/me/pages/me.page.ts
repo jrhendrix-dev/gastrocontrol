@@ -160,6 +160,12 @@ export class MePage {
       return;
     }
 
+    // Show backend message for business rule violations (e.g. demo account)
+    if (body?.error?.code === 'BUSINESS_RULE_VIOLATION' && body.error.details?.account) {
+      this.toast.error(body.error.details.account);
+      return;
+    }
+
     this.toast.error('No se pudo guardar el perfil');
   }
 
@@ -169,10 +175,18 @@ export class MePage {
     fallbackMessage: string
   ) {
     const body = err?.error;
+
     if (body?.error?.code === 'VALIDATION_FAILED' && body.error.details) {
       target.set(body.error.details);
       return;
     }
+
+    // Show backend message for business rule violations (e.g. demo account)
+    if (body?.error?.code === 'BUSINESS_RULE_VIOLATION' && body.error.details?.account) {
+      this.toast.error(body.error.details.account);
+      return;
+    }
+
     this.toast.error(fallbackMessage);
   }
 
