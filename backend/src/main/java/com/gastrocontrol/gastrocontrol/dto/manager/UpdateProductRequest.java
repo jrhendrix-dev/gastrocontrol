@@ -2,10 +2,15 @@
 package com.gastrocontrol.gastrocontrol.dto.manager;
 
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 
 public class UpdateProductRequest {
 
+
+    @Size(max = 60, message = "name must not exceed 60 characters")
     private String name;
+
+    @Size(max = 300, message = "description must not exceed 300 characters")
     private String description;
 
     @Min(0)

@@ -48,6 +48,7 @@ type ModalType = 'create' | 'delete' | null;
                 <!-- Inline rename mode -->
                 <input class="gc-input edit-input" type="text"
                        [(ngModel)]="editLabel"
+                       maxlength="50"
                        (keyup.enter)="saveEdit(table)"
                        (keyup.escape)="cancelEdit()"
                        [disabled]="savingId() === table.id" />
@@ -87,6 +88,7 @@ type ModalType = 'create' | 'delete' | null;
           <div class="form-field">
             <label>Etiqueta *</label>
             <input class="gc-input" type="text" [(ngModel)]="createLabel"
+                   maxlength="50"
                    placeholder="Ej. T6, Terraza 1, Barra…"
                    (keyup.enter)="submitCreate()" />
           </div>

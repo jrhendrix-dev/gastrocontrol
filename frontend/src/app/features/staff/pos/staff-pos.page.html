@@ -657,7 +657,7 @@
               [disabled]="!canStartOrEdit()"
             />
 
-            <div class="grid gap-4 lg:grid-cols-[minmax(180px,0.6fr)_minmax(320px,360px)]">
+            <div class="grid gap-4" style="grid-template-columns: minmax(140px, 0.5fr) 220px; overflow: hidden; padding-left: 4px;">
               <!-- Categories -->
               <div class="min-w-0">
                 <div class="mb-2 text-xs font-semibold text-black/50">Categorías</div>
@@ -677,7 +677,7 @@
               </div>
 
               <!-- Products -->
-              <div class="min-w-0 max-w-sm justify-self-start">
+              <div style="min-width: 0; overflow: hidden; width: 100%;">
                 <div class="mb-2 text-xs font-semibold text-black/50">Productos</div>
 
                 <div class="space-y-3">
@@ -687,13 +687,14 @@
                     (click)="addProduct(p)"
                     [disabled]="!canStartOrEdit()"
                     type="button"
+                    [title]="p.name"
                   >
-                    <div class="min-w-0">
-                      <div class="truncate font-semibold tracking-tight">{{ p.name }}</div>
-                      <div class="mt-0.5 truncate text-xs text-black/60">{{ p.categoryName || '' }}</div>
+                    <div class="flex-1" style="min-width: 0; overflow: hidden;">
+                      <div class="font-semibold tracking-tight" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ p.name }}</div>
+                      <div class="mt-0.5 text-xs text-black/60" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ p.categoryName || '' }}</div>
                     </div>
 
-                    <div class="text-sm font-semibold gc-money">
+                    <div class="text-sm font-semibold gc-money shrink-0 pl-2">
                       {{ (p.priceCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}
                     </div>
                   </button>

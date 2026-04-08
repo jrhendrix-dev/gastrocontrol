@@ -23,7 +23,11 @@ public class ProductJpaEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 160)
+    /**
+     * The display name of this product.
+     * Must not exceed 60 characters — enforced at DB, DTO validation, and UI levels.
+     */
+    @Column(nullable = false, length = 60)
     private String name;
 
     @Column(columnDefinition = "TEXT")

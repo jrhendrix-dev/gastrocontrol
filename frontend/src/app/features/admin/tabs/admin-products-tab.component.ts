@@ -128,12 +128,12 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
 
           <div class="form-field">
             <label>Nombre *</label>
-            <input class="gc-input" type="text" [(ngModel)]="productForm.name" placeholder="Nombre del producto" />
+            <input class="gc-input" type="text" [(ngModel)]="productForm.name" placeholder="Nombre del producto" maxlength="60" />
           </div>
           <div class="form-field">
             <label>Descripción</label>
             <textarea class="gc-input" rows="2" [(ngModel)]="productForm.description"
-                      placeholder="Descripción opcional"></textarea>
+                      placeholder="Descripción opcional" maxlength="300"></textarea>
           </div>
           <div class="form-row">
             <div class="form-field">
@@ -217,7 +217,7 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
     }
     .filters { display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap; }
     .filter-search { width: 200px; }
-    .filter-select { width: 160px; }
+    .filter-select { width: 185px; }
 
     .error-banner {
       background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.2);

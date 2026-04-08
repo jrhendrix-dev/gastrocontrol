@@ -48,6 +48,7 @@ type ModalType = 'create' | 'delete' | null;
                 <!-- Inline rename mode -->
                 <input class="gc-input edit-input" type="text"
                        [(ngModel)]="editName"
+                       maxlength="50"
                        (keyup.enter)="saveEdit(cat)"
                        (keyup.escape)="cancelEdit()"
                        [disabled]="savingId() === cat.id" />
@@ -87,6 +88,7 @@ type ModalType = 'create' | 'delete' | null;
             <label>Nombre *</label>
             <input class="gc-input" type="text" [(ngModel)]="createName"
                    placeholder="Ej. Entrantes, Bebidas, Postres…"
+                   maxlength="50"
                    (keyup.enter)="submitCreate()" />
           </div>
           @if (modalError()) { <div class="error-banner">{{ modalError() }}</div> }
