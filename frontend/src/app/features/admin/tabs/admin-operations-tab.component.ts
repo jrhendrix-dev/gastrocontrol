@@ -100,25 +100,25 @@ const TYPE_LABELS: Record<string, string> = {
                     [class.expanded-row]="expandedId() === order.id"
                     class="clickable-row"
                     (click)="toggleExpand(order)">
-                  <td class="cell-id">
+                  <td class="cell-id" data-label="#">
                     #{{ order.id }}
                     @if (order.reopened) {
                       <span class="reopened-badge">⚠ Reabierto</span>
                     }
                   </td>
-                  <td>
+                  <td data-label="Tipo">
                     <span class="type-chip type-{{ order.type.toLowerCase() }}">
                       {{ typeLabel(order.type) }}
                     </span>
                   </td>
-                  <td class="cell-muted">{{ order.tableId ?? '—' }}</td>
-                  <td>
+                  <td class="cell-muted" data-label="Mesa">{{ order.tableId ?? '—' }}</td>
+                  <td data-label="Estado">
                     <span class="status-chip status-{{ order.status.toLowerCase() }}">
                       {{ statusLabel(order.status) }}
                     </span>
                   </td>
-                  <td class="cell-price">{{ formatPrice(order.totalCents) }}</td>
-                  <td class="cell-muted">{{ order.createdAt | date:'dd MMM HH:mm' }}</td>
+                  <td class="cell-price" data-label="Total">{{ formatPrice(order.totalCents) }}</td>
+                  <td class="cell-muted" data-label="Creado">{{ order.createdAt | date:'dd MMM HH:mm' }}</td>
                   <td class="actions-cell" (click)="$event.stopPropagation()">
                     <div class="action-menu">
                       @if (order.reopened) {
@@ -479,8 +479,8 @@ const TYPE_LABELS: Record<string, string> = {
   `,
   styles: [`
     .ops-tab { display: flex; flex-direction: column; gap: 1.25rem; }
-    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-    .filters { display: flex; gap: 0.5rem; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .filter-select { width: 160px; }
     .error-banner {
       background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.2);
@@ -630,6 +630,77 @@ const TYPE_LABELS: Record<string, string> = {
 
     @media (max-width: 700px) {
       .detail-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Responsive ─────────────────────────────────────────────────── */
+
+    /* Tablet */
+    @media (max-width: 768px) {
+      .toolbar { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+      .filters { flex-direction: column; }
+      .filter-select { width: 100%; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Phone — convert table to stacked cards */
+    @media (max-width: 640px) {
+      /* Hide the <thead> — labels are inlined via data-label */
+      .ops-table thead { display: none; }
+
+      .ops-table,
+      .ops-table tbody,
+      .ops-table tr,
+      .ops-table td {
+        display: block;
+        width: 100%;
+      }
+
+      .ops-table tr {
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 10px;
+        margin-bottom: 0.75rem;
+        padding: 0.75rem 0.875rem;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        position: relative;
+      }
+
+      /* Detail / expanded rows stay invisible as wrappers */
+      .ops-table tr.detail-row {
+        border: none; box-shadow: none; padding: 0; margin: 0; background: transparent;
+      }
+
+      .ops-table td {
+        padding: 0.3rem 0;
+        border-top: none;
+        font-size: 0.875rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      /* Inline labels from data-label attribute */
+      .ops-table td[data-label]::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--gc-ink-muted);
+        flex-shrink: 0;
+      }
+
+      /* Actions row: full width, right-aligned */
+      .ops-table td.actions-cell {
+        justify-content: flex-end;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(0,0,0,0.06);
+        margin-top: 0.25rem;
+      }
+      .ops-table td.actions-cell::before { content: ''; }
+
+      .table-wrapper { padding: 0; }
     }
   `],
 })

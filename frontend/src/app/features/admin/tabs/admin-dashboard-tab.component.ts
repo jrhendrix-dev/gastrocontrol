@@ -252,6 +252,11 @@ interface DashboardStats {
       &.status-cancelled      { background: rgba(220,38,38,0.1);   color: #b91c1c; }
       &.status-draft          { background: rgba(0,0,0,0.05);      color: var(--gc-ink-muted); }
     }
+
+    /* Wherever the outer wrapper is padded – if there's a section padding, add: */
+    @media (max-width: 640px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    }
   `],
 })
 export class AdminDashboardTabComponent implements OnInit {

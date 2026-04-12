@@ -99,11 +99,18 @@ const ALL_TABS: Tab[] = [
       text-transform: uppercase; color: var(--gc-brand);
       background: rgba(15,47,36,0.08); border: 1px solid rgba(15,47,36,0.15);
       padding: 0.25rem 0.75rem; border-radius: 999px;
+      flex-shrink: 0;
     }
 
+    /* Tab bar: scrollable so all tabs are reachable on small screens */
     .admin-tabs {
-      display: flex; padding: 0 2rem;
+      display: flex;
+      padding: 0 2rem;
       background: var(--gc-brand-analogous, #1a4a37);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;          /* Firefox */
+      &::-webkit-scrollbar { display: none; } /* Chrome/Safari */
     }
     .admin-tab {
       display: flex; align-items: center; gap: 0.4rem;
@@ -112,10 +119,28 @@ const ALL_TABS: Tab[] = [
       color: rgba(255,255,255,0.6);
       font-size: 0.875rem; font-weight: 500; cursor: pointer;
       transition: color 0.15s, border-color 0.15s; white-space: nowrap;
+      flex-shrink: 0;
       &:hover { color: rgba(255,255,255,0.9); }
       &.active { color: var(--gc-accent); border-bottom-color: var(--gc-accent); font-weight: 600; }
     }
     .admin-content { padding: 2rem; }
+
+    /* ── Tablet (≤768px) ─────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .admin-header { padding: 1.25rem 1.25rem 0; }
+      .admin-tabs   { padding: 0 1rem; }
+      .admin-content { padding: 1.25rem; }
+    }
+
+    /* ── Phone (≤640px) ──────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .admin-header { padding: 1rem 1rem 0; gap: 0.5rem; flex-wrap: wrap; }
+      .admin-title  { font-size: 1.125rem; }
+      .admin-tabs   { padding: 0 0.5rem; }
+      /* Icon-only tabs: hide the label text, keep the emoji */
+      .admin-tab    { padding: 0.75rem 0.875rem; font-size: 0.75rem; gap: 0.25rem; }
+      .admin-content { padding: 0.75rem; }
+    }
   `],
 })
 export class AdminPanelPage {

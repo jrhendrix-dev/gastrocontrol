@@ -213,11 +213,11 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
 
     .toolbar {
       display: flex; align-items: center;
-      justify-content: space-between; gap: 1rem;
+      justify-content: space-between; gap: 1rem; flex-wrap: wrap;
     }
-    .filters { display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap; }
+    .filters { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
     .filter-search { width: 200px; }
-    .filter-select { width: 185px; }
+    .filter-select { width: 160px; }
 
     .error-banner {
       background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.2);
@@ -291,6 +291,77 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
     }
     .form-row { display: flex; gap: 0.75rem; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.25rem; }
+
+    /* ── Responsive ─────────────────────────────────────────────────── */
+
+    @media (max-width: 768px) {
+      .toolbar { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+      .toolbar > button { align-self: flex-end; }
+      .filters { flex-direction: column; }
+      .filter-search,
+      .filter-select { width: 100%; }
+    }
+
+    @media (max-width: 640px) {
+      .products-table thead { display: none; }
+
+      .products-table,
+      .products-table tbody,
+      .products-table tr,
+      .products-table td {
+        display: block;
+        width: 100%;
+      }
+
+      .products-table tr {
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 10px;
+        margin-bottom: 0.75rem;
+        padding: 0.875rem;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      }
+
+      .products-table tr.discontinued-row { opacity: 0.65; }
+
+      .products-table td {
+        padding: 0.3rem 0;
+        border-top: none;
+        font-size: 0.875rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+
+      .products-table td[data-label]::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--gc-ink-muted);
+        flex-shrink: 0;
+        margin-top: 0.1rem;
+      }
+
+      /* Name cell: keep full width, stack label on top */
+      .products-table td:first-child {
+        flex-direction: column;
+        align-items: flex-start;
+        padding-bottom: 0.5rem;
+      }
+      .products-table td:first-child::before { display: none; }
+
+      /* Actions: right-aligned, with separator */
+      .products-table td.actions-cell {
+        justify-content: flex-end;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(0,0,0,0.06);
+        margin-top: 0.25rem;
+      }
+      .products-table td.actions-cell::before { content: ''; }
+    }
   `],
 })
 export class AdminProductsTabComponent implements OnInit {

@@ -85,19 +85,19 @@ interface ConfirmAction {
               @for (user of users(); track user.id) {
                 <tr [class.row-inactive]="!user.active">
                   <td class="cell-email">{{ user.email }}</td>
-                  <td>{{ fullName(user) }}</td>
-                  <td>
+                  <td data-label="Nombre">{{ fullName(user) }}</td>
+                  <td data-label="Rol">
                     <span class="role-chip role-{{ user.role.toLowerCase() }}">
                       {{ user.role }}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Estado">
                     <span class="status-chip" [class.active]="user.active">
                       {{ user.active ? 'Activo' : 'Inactivo' }}
                     </span>
                   </td>
-                  <td class="cell-date">{{ user.createdAt | date:'dd MMM yyyy' }}</td>
-                  <td class="cell-date">
+                  <td class="cell-date" data-label="Alta">{{ user.createdAt | date:'dd MMM yyyy' }}</td>
+                  <td class="cell-date" data-label="Último acceso">
                     {{ user.lastLoginAt ? (user.lastLoginAt | date:'dd MMM yyyy') : '—' }}
                   </td>
                   <td class="cell-actions">
@@ -364,6 +364,81 @@ interface ConfirmAction {
     .modal-actions {
       display: flex; justify-content: flex-end;
       gap: 0.5rem; margin-top: 0.25rem;
+    }
+
+    /* ── Responsive ─────────────────────────────────────────────────── */
+
+    @media (max-width: 768px) {
+      .toolbar { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+      .toolbar > button { align-self: flex-end; }
+      .filters { flex-direction: column; }
+      .filter-search,
+      .filter-select { width: 100%; }
+    }
+
+    @media (max-width: 640px) {
+      .users-table thead { display: none; }
+
+      .users-table,
+      .users-table tbody,
+      .users-table tr,
+      .users-table td {
+        display: block;
+        width: 100%;
+      }
+
+      .users-table tr {
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 10px;
+        margin-bottom: 0.75rem;
+        padding: 0.875rem;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      }
+
+      .users-table tr.row-inactive { opacity: 0.65; }
+
+      .users-table td {
+        padding: 0.3rem 0;
+        border-top: none;
+        font-size: 0.875rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      /* Email cell: full width, no label needed — it's the card "title" */
+      .users-table td.cell-email {
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+        margin-bottom: 0.25rem;
+        justify-content: flex-start;
+      }
+      .users-table td.cell-email::before { display: none; }
+
+      .users-table td[data-label]::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--gc-ink-muted);
+        flex-shrink: 0;
+      }
+
+      /* Actions: right-aligned with separator */
+      .users-table td.cell-actions {
+        justify-content: flex-end;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(0,0,0,0.06);
+        margin-top: 0.25rem;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+      .users-table td.cell-actions::before { content: ''; }
     }
   `],
 })
