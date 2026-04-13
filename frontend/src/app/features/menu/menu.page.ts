@@ -77,9 +77,18 @@ import { CatalogCategoryDto, CatalogProductDto } from '../../core/api/catalog/ca
                     @for (product of cat.products; track product.id) {
                       <article class="product-card">
 
-                        <!-- Placeholder image area -->
-                        <div class="card-image">
-                          <span class="card-image-placeholder">🍽️</span>
+                        <!-- Product image with emoji placeholder fallback -->
+                        <div class="card-image" [class.card-image--placeholder]="!product.imageUrl">
+                          @if (product.imageUrl) {
+                            <img
+                              [src]="product.imageUrl"
+                              [alt]="product.name"
+                              class="card-img"
+                              loading="lazy"
+                              (error)="onImageError($event)" />
+                          } @else {
+                            <span class="card-image-placeholder">🍽️</span>
+                          }
                         </div>
 
                         <div class="card-body">
@@ -275,12 +284,17 @@ import { CatalogCategoryDto, CatalogProductDto } from '../../core/api/catalog/ca
       height: 140px;
       background: linear-gradient(135deg, #f0ede8 0%, #e8e3db 100%);
       display: grid; place-items: center;
+      overflow: hidden;
+    }
+    .card-image--placeholder {
+      /* keep the gradient only when there's no image */
+    }
+    .card-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
     }
     .card-image-placeholder { font-size: 2.5rem; opacity: 0.4; }
-    .card-body {
-      padding: 1rem; flex: 1;
-      display: flex; flex-direction: column; justify-content: space-between; gap: 0.75rem;
-    }
     .card-info { flex: 1; }
     .card-name {
       font-size: 0.95rem; font-weight: 700; color: #1a2e1a;
@@ -414,6 +428,21 @@ export class MenuPage implements OnInit, AfterViewInit {
   protected readonly loading         = signal(true);
   protected readonly error           = signal<string | null>(null);
   protected readonly activeCategoryId = signal<number | null>(null);
+
+  /**
+   * Falls back to the placeholder emoji if the image URL 404s or fails to load.
+   * Sets imageUrl to null on the product so the @if switches to the placeholder branch.
+   */
+  protected onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    img.style.display = 'none';
+    // Show the parent's placeholder state
+    img.closest('.card-image')?.classList.add('card-image--placeholder');
+    const placeholder = document.createElement('span');
+    placeholder.className = 'card-image-placeholder';
+    placeholder.textContent = '🍽️';
+    img.parentElement?.appendChild(placeholder);
+  }
 
   @ViewChildren('categorySection')
   private sectionRefs!: QueryList<ElementRef<HTMLElement>>;

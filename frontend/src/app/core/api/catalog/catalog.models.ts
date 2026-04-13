@@ -7,8 +7,9 @@
 export interface CatalogProductDto {
   id: number;
   name: string;
-  /** Optional marketing description shown on the menu page. */
   description: string | null;
+  /** Server-relative URL of the product image, or null if none uploaded. */
+  imageUrl: string | null;
   priceCents: number;
   categoryId: number | null;
   categoryName: string | null;

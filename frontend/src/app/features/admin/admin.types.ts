@@ -39,6 +39,8 @@ export interface ProductResponse {
   id: number;
   name: string;
   description: string | null;
+  /** Server-relative URL of the product image, or null if none uploaded. */
+  imageUrl: string | null;
   priceCents: number;
   active: boolean;
   categoryId: number | null;

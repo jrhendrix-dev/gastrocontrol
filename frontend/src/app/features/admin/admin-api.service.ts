@@ -158,6 +158,34 @@ export class AdminApiService {
       .pipe(map(() => void 0));
   }
 
+  /**
+   * Uploads or replaces the hero image for a product.
+   * Sends multipart/form-data — Angular's HttpClient sets the boundary automatically
+   * when given a FormData body, so we must NOT set Content-Type manually.
+   *
+   * @param id   the product ID
+   * @param file the image file selected by the user
+   * @returns the public server-relative URL of the saved image
+   */
+  uploadProductImage(id: number, file: File): Observable<string> {
+    const body = new FormData();
+    body.append('file', file);
+    return this.http
+      .post<ApiResponse<string>>(`${this.API}/api/manager/products/${id}/image`, body)
+      .pipe(map(r => r.data));
+  }
+
+  /**
+   * Removes the hero image from a product.
+   *
+   * @param id the product ID
+   */
+  deleteProductImage(id: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<void>>(`${this.API}/api/manager/products/${id}/image`)
+      .pipe(map(() => void 0));
+  }
+
   // ── Categories (MANAGER+) ───────────────────────────────────────────────
 
   listCategories(): Observable<CategoryResponse[]> {

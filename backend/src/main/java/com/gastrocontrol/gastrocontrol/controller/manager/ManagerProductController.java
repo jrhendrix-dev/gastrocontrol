@@ -9,6 +9,9 @@ import com.gastrocontrol.gastrocontrol.dto.manager.DiscontinueProductRequest;
 import com.gastrocontrol.gastrocontrol.dto.manager.ManagerProductResponse;
 import com.gastrocontrol.gastrocontrol.dto.manager.UpdateProductRequest;
 import com.gastrocontrol.gastrocontrol.application.service.manager.ManagerProductService;
+import com.gastrocontrol.gastrocontrol.application.service.manager.ProductImageService;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,9 +36,11 @@ import org.springframework.web.bind.annotation.*;
 public class ManagerProductController {
 
     private final ManagerProductService managerProductService;
+    private final ProductImageService productImageService;
 
-    public ManagerProductController(ManagerProductService managerProductService) {
+    public ManagerProductController(ManagerProductService managerProductService, ProductImageService productImageService) {
         this.managerProductService = managerProductService;
+        this.productImageService = productImageService;
     }
 
     /**
@@ -117,6 +122,37 @@ public class ManagerProductController {
     public ResponseEntity<ApiResponse<Void>> reactivate(@PathVariable Long productId) {
         managerProductService.reactivate(productId);
         return ResponseEntity.ok(ApiResponse.ok("Product reactivated"));
+    }
+
+    /**
+     * Uploads or replaces the hero image for a product.
+     *
+     * <p>Accepts {@code multipart/form-data} with a single {@code file} part.
+     * Allowed types: JPEG, PNG, WebP. Maximum size: 5 MB.</p>
+     *
+     * @param productId the product to attach the image to
+     * @param file      the uploaded image file
+     * @return 200 OK with the public image URL in the {@code data} field
+     */
+    @PostMapping(value = "/{productId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<String>> uploadImage(
+            @PathVariable Long productId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        String url = productImageService.upload(productId, file);
+        return ResponseEntity.ok(ApiResponse.ok("Image uploaded", url));
+    }
+
+    /**
+     * Removes the hero image from a product.
+     *
+     * @param productId the product whose image should be removed
+     * @return 200 OK
+     */
+    @DeleteMapping("/{productId}/image")
+    public ResponseEntity<ApiResponse<Void>> deleteImage(@PathVariable Long productId) {
+        productImageService.delete(productId);
+        return ResponseEntity.ok(ApiResponse.ok("Image removed"));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
