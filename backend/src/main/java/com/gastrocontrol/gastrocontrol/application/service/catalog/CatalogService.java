@@ -3,18 +3,19 @@ package com.gastrocontrol.gastrocontrol.application.service.catalog;
 
 import com.gastrocontrol.gastrocontrol.dto.catalog.CatalogCategoryDto;
 import com.gastrocontrol.gastrocontrol.dto.catalog.CatalogProductDto;
-import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.ProductJpaEntity;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.CategoryRepository;
 import com.gastrocontrol.gastrocontrol.infrastructure.persistence.repository.ProductRepository;
+import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.ProductJpaEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
 /**
- * Read-only service for the public-facing product catalog.
+ * Read-only catalog service used by the public-facing menu endpoints.
  *
- * <p>Returns only active products and never exposes admin or cost fields.</p>
+ * <p>All methods are read-only transactions and require no authentication.
+ * Only active products are exposed.</p>
  */
 @Service
 public class CatalogService {
@@ -31,14 +32,13 @@ public class CatalogService {
      * Returns all active products, optionally filtered by category.
      *
      * @param categoryId optional category filter; {@code null} returns all categories
-     * @return list of active products as public DTOs
+     * @return list of active products sorted by category then name
      */
     @Transactional(readOnly = true)
     public List<CatalogProductDto> listActiveProducts(Long categoryId) {
         var products = (categoryId == null)
                 ? productRepository.findByActiveTrueOrderByCategory_IdAscNameAsc()
                 : productRepository.findByActiveTrueAndCategory_IdOrderByNameAsc(categoryId);
-
         return products.stream().map(this::toDto).toList();
     }
 
@@ -75,6 +75,8 @@ public class CatalogService {
 
     /**
      * Maps a product entity to the public catalog DTO.
+     * Field order matches the {@link CatalogProductDto} record declaration:
+     * id, name, description, imageUrl, priceCents, categoryId, categoryName.
      *
      * @param p the product entity
      * @return the mapped DTO

@@ -4,15 +4,11 @@ package com.gastrocontrol.gastrocontrol.dto.catalog;
 /**
  * Public-facing product DTO returned by the catalog endpoints.
  *
- * <p>Safe for unauthenticated use — never exposes cost, admin, or audit fields.</p>
+ * <p>Safe for unauthenticated use — never includes cost, admin, or discontinuation fields.</p>
  *
- * @param id          the product's primary key
- * @param name        display name
- * @param description optional marketing description
- * @param imageUrl    server-relative URL of the product image, or {@code null}
- * @param priceCents  price in euro cents
- * @param categoryId  the owning category ID, or {@code null} if uncategorised
- * @param categoryName the owning category name, or {@code null} if uncategorised
+ * @param imageUrl server-relative path to the product's hero image
+ *                 (e.g. {@code /gastrocontrol/uploads/products/42.webp}),
+ *                 or {@code null} when no image has been uploaded
  */
 public record CatalogProductDto(
         long id,

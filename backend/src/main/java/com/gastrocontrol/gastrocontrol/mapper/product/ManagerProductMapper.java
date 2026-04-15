@@ -8,7 +8,7 @@ import com.gastrocontrol.gastrocontrol.infrastructure.persistence.entity.Product
  * Maps {@link ProductJpaEntity} to the manager-facing {@link ManagerProductResponse}.
  *
  * <p>Includes discontinuation audit fields and {@code imageUrl} that the
- * public catalog mapper omits.</p>
+ * staff-facing mapper also exposes.</p>
  */
 public final class ManagerProductMapper {
 
@@ -17,7 +17,7 @@ public final class ManagerProductMapper {
     /**
      * Maps a product entity to a manager response DTO.
      *
-     * @param p the product entity; must not be {@code null}
+     * @param p the product entity; must not be null
      * @return a fully-populated {@link ManagerProductResponse}
      */
     public static ManagerProductResponse toResponse(ProductJpaEntity p) {

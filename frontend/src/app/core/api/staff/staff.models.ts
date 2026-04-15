@@ -36,6 +36,8 @@ export interface ProductResponse {
   id: number;
   name: string;
   description: string;
+  /** Server-relative URL of the product image, or null if none uploaded. */
+  imageUrl?: string | null;
   priceCents: number;
   active: boolean;
   categoryId?: number | null;
@@ -87,11 +89,11 @@ export interface OrderResponse {
    */
   createdAt: string;
 
-   /**
-    * True when the order has been reopened by a manager and is pending
-    * a financial adjustment. While true, the order cannot be FINISHED.
+  /**
+   * True when the order has been reopened by a manager and is pending
+   * a financial adjustment. While true, the order cannot be FINISHED.
    */
-   reopened?: boolean;
+  reopened?: boolean;
 
   /** Payment provider. 'STRIPE' for online orders, 'MANUAL' for cash/POS. null if no payment yet. */
   paymentProvider?: PaymentProvider | null;

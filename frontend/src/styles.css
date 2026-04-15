@@ -179,4 +179,129 @@ body {
   .border-black\/8 {
     border-color: rgba(0, 0, 0, 0.08);
   }
+
+  /* ══════════════════════════════════════════════════════════════════
+     POS — workspace layout, category pills, product mini-cards
+     Add inside the existing  @layer components { ... }  block in styles.css
+  ══════════════════════════════════════════════════════════════════ */
+
+  /**
+   * Two-column workspace grid.
+   * Left column: order lines (fixed 380px, scrollable)
+   * Right column: product picker (takes all remaining space)
+   */
+  .workspace-grid {
+    @apply grid gap-4 items-start;
+    grid-template-columns: 380px minmax(0, 1fr);
+  }
+
+  /** On smaller screens stack vertically */
+  @media (max-width: 900px) {
+    .workspace-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /** Lines column: give it a max-height so it scrolls independently */
+  .workspace-lines {
+    @apply overflow-y-auto;
+    max-height: calc(100vh - 9rem);
+  }
+
+  /** Products column: same max-height */
+  .workspace-products {
+    @apply overflow-y-auto;
+    max-height: calc(100vh - 9rem);
+  }
+
+  /* ── Category pills ──────────────────────────────────────────── */
+
+  /**
+   * Horizontal scrollable pill row.
+   * Uses flexbox with nowrap so pills never wrap to a second row.
+   */
+  .pos-category-pills {
+    @apply flex gap-2 overflow-x-auto pb-1;
+    scrollbar-width: none;          /* Firefox */
+  }
+  .pos-category-pills::-webkit-scrollbar { display: none; }  /* Chrome/Safari */
+
+  .pos-pill {
+    @apply flex-shrink-0 rounded-full border border-black/10 bg-white/55 px-3 py-1.5
+    text-sm font-medium text-black/70 whitespace-nowrap
+    transition hover:bg-white/70 active:scale-[0.98]
+    disabled:opacity-40 disabled:pointer-events-none;
+  }
+
+  .pos-pill-active {
+    @apply ring-2 ring-black/20 bg-white/80 text-black font-semibold;
+  }
+
+  /* ── Product mini-card grid ─────────────────────────────────── */
+
+  /**
+   * Responsive grid: fills available space with cards that are at
+   * minimum 160px wide. This gives roughly 3-4 per row on a typical
+   * desktop workspace.
+   */
+  .pos-product-grid {
+    @apply grid gap-3;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  /**
+   * Each product card is a button styled as a mini-card.
+   * ~1/3 the size of the customer menu card.
+   */
+  .pos-product-card {
+    @apply flex flex-col rounded-xl border border-black/10 bg-white/55 text-left
+    transition hover:bg-white/75 hover:shadow-md
+    active:scale-[0.98]
+    disabled:opacity-40 disabled:pointer-events-none;
+    overflow: hidden;
+  }
+
+  .pos-card-image {
+    height: 90px;
+    flex-shrink: 0;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f0ede8 0%, #e4dfd5 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pos-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .pos-card-image-placeholder {
+    @apply text-3xl;
+    opacity: 0.25;
+  }
+
+  .pos-card-body {
+    @apply flex flex-col gap-0.5 p-2.5;
+    flex-shrink: 0;
+  }
+
+  .pos-card-name {
+    @apply text-sm font-semibold tracking-tight leading-snug text-black/85;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .pos-card-category {
+    @apply text-[11px] text-black/50 truncate;
+  }
+
+  .pos-card-price {
+    @apply mt-1 text-sm font-bold tabular-nums;
+    color: var(--gc-brand);
+  }
 }

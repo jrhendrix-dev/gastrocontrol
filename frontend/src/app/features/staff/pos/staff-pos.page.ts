@@ -668,7 +668,7 @@ export class StaffPosPage implements OnInit, OnDestroy {
   private loadCatalogProducts(categoryId: number | null) {
     this.loadingProducts.set(true);
     this.catalogApi.listProducts({ categoryId }).subscribe({
-      next: (ps) => this.products.set(ps.map(p => ({ id: p.id, name: p.name, priceCents: p.priceCents, categoryName: p.categoryName ?? '' })) as any),
+      next: (ps) => this.products.set(ps.map(p => ({ id: p.id, name: p.name, imageUrl: p.imageUrl ?? null, priceCents: p.priceCents, categoryName: p.categoryName ?? '' })) as any),
       error: () => this.products.set([]),
       complete: () => this.loadingProducts.set(false),
     });
@@ -689,4 +689,35 @@ export class StaffPosPage implements OnInit, OnDestroy {
       error: (err) => { this.paymentError.set(this.extractErrorMessage(err) ?? 'No se pudo procesar el pago.'); this.paymentLoading.set(false); },
     });
   }
+
+  // ── New methods for reworked POS template ────────────────────────────────
+
+  currentExternosOrder = signal<OrderResponse | null>(null);
+
+  get externosExpanded() { return this.externosOpen; }
+
+  closeOrderWorkspace(): void {
+    this.currentTable.set(null);
+    this.currentExternosOrder.set(null);
+    this.order.set(null);
+    this.orderError.set(null);
+    this.refreshTables();
+  }
+
+  toggleExternosExpanded(): void { this.externosOpen.update(v => !v); }
+
+  openNewTelOrder(): void { this.phoneFormOpen.set(true); }
+
+  selectExternosOrder(externalOrder: OrderResponse): void {
+    this.currentTable.set(null);
+    this.currentExternosOrder.set(externalOrder);
+    this.order.set(externalOrder);
+    this.orderError.set(null);
+  }
+
+  sendToKitchen(): void { this.submitToKitchen(); }
+
+  removeLine(itemId: number): void { this.remove(itemId); }
+
+  trackExternosOrder = (_: number, o: OrderResponse) => o.id;
 }

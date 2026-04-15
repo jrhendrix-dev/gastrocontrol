@@ -407,7 +407,7 @@ export class AdminProductsTabComponent implements OnInit {
   protected productPriceEuros: number | null = null;
   protected discontinueReason = '';
 
-  private editingProductId: number | null = null;
+  protected editingProductId: number | null = null;
 
   ngOnInit(): void {
     this.loadCategories();
