@@ -56,12 +56,6 @@ public class DemoSessionService {
         this.adminJdbc = new JdbcTemplate(buildAdminDataSource(dataSourceProperties));
     }
 
-    /**
-     * Provisions a new demo session schema and returns the session ID.
-     *
-     * @return the generated session ID to be stored by the client
-     *         and sent as {@code X-Demo-Session} on subsequent requests
-     */
     public String provisionSession() {
         String sessionId = generateSessionId();
         String schema    = "gc_demo_" + sessionId;
@@ -71,6 +65,7 @@ public class DemoSessionService {
         createSchema(schema);
         runMigrations(schema);
         seedDemoUsers(schema);
+        seedDemoData(schema);   // ← add this
         recordSession(sessionId, schema);
 
         log.info("Demo schema '{}' ready", schema);
@@ -115,30 +110,45 @@ public class DemoSessionService {
     }
 
     /**
-     * Seeds the new schema with demo user accounts.
-     * Password for all demo accounts: {@code GastroControl1726!}
+     * Seeds the new schema with demo user accounts, using the same primary key
+     * IDs as the corresponding users in the main schema.
+     *
+     * <p>This is critical for correctness: the JWT issued after demo login contains
+     * the user's ID from the main schema. When {@code /api/me} or any other endpoint
+     * queries the demo schema by that ID, the row must exist with the same ID.</p>
      *
      * @param schema the target schema name
      */
     private void seedDemoUsers(String schema) {
+        // Fetch the IDs of the demo users from the main schema so we can
+        // insert them with the same IDs into the demo schema.
+        Long adminId   = adminJdbc.queryForObject(
+                "SELECT id FROM users WHERE email = 'admin@gastro.demo'",   Long.class);
+        Long managerId = adminJdbc.queryForObject(
+                "SELECT id FROM users WHERE email = 'manager@gastro.demo'", Long.class);
+        Long staffId   = adminJdbc.queryForObject(
+                "SELECT id FROM users WHERE email = 'staff@gastro.demo'",   Long.class);
+
         JdbcTemplate schemaJdbc = new JdbcTemplate(buildSchemaDataSource(schema));
 
         schemaJdbc.update("""
-                INSERT INTO users (email, password, role, active, created_at, first_name, last_name, phone)
-                VALUES
-                    ('admin@gastro.demo',
-                     '$2b$12$3jae2iKs5BcKJa/m5TkLx.4b6w2ELF1irYFYXbJutSbkCBW5uTTdy',
-                     'ADMIN', 1, NOW(), 'Demo', 'Admin', '600000001'),
-                    ('manager@gastro.demo',
-                     '$2b$12$/oIg33gYYwzS02/.GRZF6.5NyYW.Xdqoef5M5laEjC11XdEOeEQ/G',
-                     'MANAGER', 1, NOW(), 'Demo', 'Manager', '600000002'),
-                    ('staff@gastro.demo',
-                     '$2b$12$F1St7LtgqmHMsREXI6oEo.jDu6tcM5HjgcU3fvMNojZ1.o/j5vkTq',
-                     'STAFF', 1, NOW(), 'Demo', 'Staff', '600000003')
-                ON DUPLICATE KEY UPDATE email = email
-                """);
+            INSERT INTO users (id, email, password, role, active, created_at, first_name, last_name, phone)
+            VALUES
+                (?, 'admin@gastro.demo',
+                 '$2b$12$3jae2iKs5BcKJa/m5TkLx.4b6w2ELF1irYFYXbJutSbkCBW5uTTdy',
+                 'ADMIN', 1, NOW(), 'Demo', 'Admin', '600000001'),
+                (?, 'manager@gastro.demo',
+                 '$2b$12$/oIg33gYYwzS02/.GRZF6.5NyYW.Xdqoef5M5laEjC11XdEOeEQ/G',
+                 'MANAGER', 1, NOW(), 'Demo', 'Manager', '600000002'),
+                (?, 'staff@gastro.demo',
+                 '$2b$12$F1St7LtgqmHMsREXI6oEo.jDu6tcM5HjgcU3fvMNojZ1.o/j5vkTq',
+                 'STAFF', 1, NOW(), 'Demo', 'Staff', '600000003')
+            ON DUPLICATE KEY UPDATE email = email
+            """,
+                adminId, managerId, staffId);
 
-        log.debug("Demo users seeded for schema: {}", schema);
+        log.debug("Demo users seeded with main-schema IDs ({}, {}, {}) for schema: {}",
+                adminId, managerId, staffId, schema);
     }
 
     /**
@@ -210,5 +220,105 @@ public class DemoSessionService {
         // e.g. jdbc:mysql://host:3306/gastrocontrol?... → jdbc:mysql://host:3306/gc_demo_xxx?...
         String baseUrl = dataSourceProperties.getUrl();
         return baseUrl.replaceFirst("(jdbc:mysql://[^/]+/)[^?]+", "$1" + schema);
+    }
+
+    /**
+     * Seeds the demo schema with categories, products (with image URLs),
+     * and dining tables so the demo experience is fully populated.
+     *
+     * <p>All cleanup statements run on the same JDBC connection so that
+     * {@code SET FOREIGN_KEY_CHECKS = 0} stays in effect for the deletes.</p>
+     *
+     * <p>Products reference the shared seed images on the uploads volume,
+     * so no image files need to be copied per-schema.</p>
+     *
+     * @param schema the target demo schema name
+     */
+    private void seedDemoData(String schema) {
+        JdbcTemplate schemaJdbc = new JdbcTemplate(buildSchemaDataSource(schema));
+
+        // Clear any data inserted by Flyway dev migrations on the same connection
+        // so the FK_CHECKS session variable stays in effect for all deletes.
+        schemaJdbc.execute((java.sql.Connection conn) -> {
+            try (var stmt = conn.createStatement()) {
+                stmt.execute("SET FOREIGN_KEY_CHECKS = 0");
+                stmt.execute("DELETE FROM order_items");
+                stmt.execute("DELETE FROM orders");
+                stmt.execute("DELETE FROM products");
+                stmt.execute("DELETE FROM categories");
+                stmt.execute("DELETE FROM dining_tables");
+                stmt.execute("SET FOREIGN_KEY_CHECKS = 1");
+            }
+            return null;
+        });
+
+        // Categories
+        schemaJdbc.update("""
+            INSERT INTO categories (name) VALUES
+                ('Hamburguesas'),
+                ('Entrantes'),
+                ('Ensaladas'),
+                ('Pizzas'),
+                ('Postres'),
+                ('Bebidas')
+            """);
+
+        // Products with image URLs
+        schemaJdbc.update("""
+            INSERT INTO products (name, description, price_cents, active, category_id, image_url) VALUES
+                ('Hamburguesa Clasica','Hamburguesa de ternera con lechuga, tomate y salsa de la casa.',1090,1,
+                 (SELECT id FROM categories WHERE name='Hamburguesas'),
+                 '/gastrocontrol/uploads/products/seed-hamburguesa-clasica.jpg'),
+                ('Hamburguesa con Queso','Hamburguesa de ternera con queso cheddar.',1190,1,
+                 (SELECT id FROM categories WHERE name='Hamburguesas'),
+                 '/gastrocontrol/uploads/products/seed-hamburguesa-queso.jpg'),
+                ('Doble Hamburguesa','Doble medallon de ternera con todos los ingredientes.',1490,1,
+                 (SELECT id FROM categories WHERE name='Hamburguesas'),
+                 '/gastrocontrol/uploads/products/seed-doble-hamburguesa.jpg'),
+                ('Hamburguesa de Pollo','Pollo crujiente con mayonesa y lechuga.',1290,1,
+                 (SELECT id FROM categories WHERE name='Hamburguesas'),
+                 '/gastrocontrol/uploads/products/seed-hamburguesa-pollo.jpg'),
+                ('Patatas Fritas','Patatas crujientes con sal.',350,1,
+                 (SELECT id FROM categories WHERE name='Entrantes'),
+                 '/gastrocontrol/uploads/products/seed-patatas-fritas.jpg'),
+                ('Aros de Cebolla','Aros de cebolla dorados con salsa.',450,1,
+                 (SELECT id FROM categories WHERE name='Entrantes'),
+                 '/gastrocontrol/uploads/products/seed-aros-cebolla.jpg'),
+                ('Nuggets de Pollo','6 nuggets de pollo con salsa a elegir.',590,1,
+                 (SELECT id FROM categories WHERE name='Entrantes'),
+                 '/gastrocontrol/uploads/products/seed-nuggets-pollo.jpg'),
+                ('Ensalada Cesar','Lechuga romana, parmesano, picatostes y alino Cesar.',890,1,
+                 (SELECT id FROM categories WHERE name='Ensaladas'),
+                 '/gastrocontrol/uploads/products/seed-ensalada-cesar.jpg'),
+                ('Ensalada Griega','Tomate, pepino, feta y aceitunas.',850,1,
+                 (SELECT id FROM categories WHERE name='Ensaladas'),
+                 '/gastrocontrol/uploads/products/seed-ensalada-griega.jpg'),
+                ('Pizza Margherita','Tomate, mozzarella y albahaca fresca.',1090,1,
+                 (SELECT id FROM categories WHERE name='Pizzas'),
+                 '/gastrocontrol/uploads/products/seed-pizza-margherita.jpg'),
+                ('Pizza Pepperoni','Pepperoni y mozzarella.',1290,1,
+                 (SELECT id FROM categories WHERE name='Pizzas'),
+                 '/gastrocontrol/uploads/products/seed-pizza-pepperoni.jpg'),
+                ('Brownie de Chocolate','Brownie templado con helado de vainilla.',490,1,
+                 (SELECT id FROM categories WHERE name='Postres'),
+                 '/gastrocontrol/uploads/products/seed-brownie-chocolate.jpg'),
+                ('Tarta de Queso','Porcion de tarta de queso cremosa.',520,1,
+                 (SELECT id FROM categories WHERE name='Postres'),
+                 '/gastrocontrol/uploads/products/seed-tarta-queso.jpg'),
+                ('Coca-Cola','Lata 330ml.',250,1,
+                 (SELECT id FROM categories WHERE name='Bebidas'),
+                 '/gastrocontrol/uploads/products/seed-coca-cola.jpg'),
+                ('Agua Mineral','Botella 500ml.',180,1,
+                 (SELECT id FROM categories WHERE name='Bebidas'),
+                 '/gastrocontrol/uploads/products/seed-agua-mineral.jpg')
+            """);
+
+        // Dining tables
+        schemaJdbc.update("""
+            INSERT INTO dining_tables (label) VALUES
+                ('T1'),('T2'),('T3'),('T4'),('T5')
+            """);
+
+        log.debug("Demo data seeded for schema: {}", schema);
     }
 }

@@ -137,9 +137,10 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
 
             <!-- Create / Edit -->
             @if (modalType() === 'create' || modalType() === 'edit') {
-              <h2 class="modal-title">
-                {{ modalType() === 'create' ? 'Nuevo producto' : 'Editar producto' }}
-              </h2>
+              <h2 class="modal-title">{{ modalType() === 'create' ? 'Nuevo producto' : 'Editar producto' }}</h2>
+              @if (modalType() === 'edit' && !selectedProduct()?.imageUrl && editingProductId) {
+                <p class="modal-subtitle">Producto guardado. Ahora puedes añadir una imagen.</p>
+              }
 
               @if (modalError()) {
                 <div class="error-banner">{{ modalError() }}</div>
@@ -341,6 +342,7 @@ type ModalType = 'create' | 'edit' | 'discontinue' | 'confirmReactivate' | null;
     }
     .modal-title { font-size: 1.2rem; font-weight: 700; color: #1a2e1a; margin: 0 0 1.25rem; }
     .modal-body  { color: #555; margin: 0 0 1rem; line-height: 1.6; }
+    .modal-subtitle { font-size: 0.82rem; color: #2d6a2d; margin: -0.75rem 0 1rem; }
 
     /* ── Form ───────────────────────────────────────────────────────────── */
     .form-group { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
@@ -517,7 +519,32 @@ export class AdminProductsTabComponent implements OnInit {
       } as CreateProductRequest);
 
     obs.subscribe({
-      next: () => { this.modalLoading.set(false); this.closeModal(); this.load(); },
+      next: () => {
+        this.modalLoading.set(false);
+        if (this.editingProductId) {
+          // Edit — close as before
+          this.closeModal();
+          this.load();
+        } else {
+          // Create — reload list to get the new product's ID, then open edit modal
+          this.api.listProducts(undefined, 0, 20).subscribe({
+            next: page => {
+              this.products.set(page.content);
+              this.totalPages.set(page.totalPages);
+              // Find the newly created product by name and open its edit modal
+              const newProduct = page.content.find(
+                p => p.name.toLowerCase() === this.productForm.name.trim().toLowerCase()
+              );
+              if (newProduct) {
+                this.openEdit(newProduct);
+              } else {
+                this.closeModal();
+              }
+            },
+            error: () => { this.closeModal(); }
+          });
+        }
+      },
       error: err => {
         this.modalLoading.set(false);
         this.modalError.set(err?.error?.error?.message ?? 'Error al guardar el producto.');
