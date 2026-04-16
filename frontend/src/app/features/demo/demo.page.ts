@@ -1,3 +1,4 @@
+// frontend/src/app/features/demo/demo.page.ts
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -13,6 +14,7 @@ interface RoleCard {
   description: string;
   icon: string;
   color: string;
+  buttonLabel: string; // ← NEW: separate label so we control line breaks
   credentials: { email: string; password: string };
 }
 
@@ -51,7 +53,7 @@ interface RoleCard {
               <div class="role-spinner">Preparando demo...</div>
             } @else {
               <button class="role-btn" [style.background]="card.color">
-                Entrar como {{ card.title }}
+                {{ card.buttonLabel }}
               </button>
             }
           </div>
@@ -65,7 +67,8 @@ interface RoleCard {
       }
 
       <div class="demo-footer">
-        <a routerLink="/gastrocontrol" class="back-link">← Volver al inicio</a>
+        <!-- Uses router.navigate so the base href (/gastrocontrol/) is respected -->
+        <a class="back-link" (click)="goBack()">← Volver al inicio</a>
       </div>
     </div>
   `,
@@ -159,6 +162,9 @@ interface RoleCard {
       cursor: pointer;
       width: 100%;
       font-weight: 600;
+      /* Force two-line layout on all buttons for visual consistency */
+      white-space: pre-line;
+      line-height: 1.4;
     }
 
     .role-spinner {
@@ -183,6 +189,7 @@ interface RoleCard {
       color: #666;
       text-decoration: none;
       font-size: 0.9rem;
+      cursor: pointer;
     }
 
     .back-link:hover {
@@ -191,13 +198,13 @@ interface RoleCard {
   `]
 })
 export class DemoPageComponent {
-  private readonly demoApi = inject(DemoSessionApi);
-  private readonly demoStore = inject(DemoSessionStore);
+  private readonly demoApi    = inject(DemoSessionApi);
+  private readonly demoStore  = inject(DemoSessionStore);
   private readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
+  private readonly router     = inject(Router);
 
   readonly loading = signal<DemoSession['role'] | null>(null);
-  readonly error = signal<string | null>(null);
+  readonly error   = signal<string | null>(null);
 
   readonly roleCards: RoleCard[] = [
     {
@@ -206,6 +213,7 @@ export class DemoPageComponent {
       icon: '👑',
       color: '#2d6a2d',
       description: 'Acceso completo: gestión de usuarios, productos, categorías, mesas y panel de administración.',
+      buttonLabel: 'Entrar como\nAdmin',
       credentials: { email: 'admin@gastro.demo', password: 'GastroControl1726!' },
     },
     {
@@ -214,6 +222,7 @@ export class DemoPageComponent {
       icon: '📊',
       color: '#1a5276',
       description: 'Panel de operaciones, gestión de pedidos, reportes y supervisión del equipo.',
+      buttonLabel: 'Entrar como\nManager',
       credentials: { email: 'manager@gastro.demo', password: 'GastroControl1726!' },
     },
     {
@@ -222,6 +231,7 @@ export class DemoPageComponent {
       icon: '🍽️',
       color: '#7d3c12',
       description: 'POS terminal, gestión de mesas, pedidos y vista de cocina en tiempo real.',
+      buttonLabel: 'Entrar como\nStaff',
       credentials: { email: 'staff@gastro.demo', password: 'GastroControl1726!' },
     },
   ];
@@ -238,10 +248,8 @@ export class DemoPageComponent {
       finalize(() => this.loading.set(null))
     ).subscribe({
       next: (sessionId) => {
-        // Activate demo mode — interceptor will now send X-Demo-Session
         this.demoStore.activate(sessionId, card.role);
 
-        // Auto-login with demo credentials
         this.authService.login(card.credentials).subscribe({
           next: () => this.redirectForRole(card.role),
           error: () => {
@@ -256,11 +264,18 @@ export class DemoPageComponent {
     });
   }
 
+  /**
+   * Navigates back to the portfolio landing page.
+   * Uses Angular's Router so the base href is respected automatically —
+   * navigating to '/' from within /gastrocontrol/ goes to the portfolio root.
+   */
+  goBack(): void {
+    this.router.navigate(['/']);
+  }
+
   private redirectForRole(role: DemoSession['role']): void {
     switch (role) {
       case 'ADMIN':
-        this.router.navigate(['/admin']);
-        break;
       case 'MANAGER':
         this.router.navigate(['/admin']);
         break;
