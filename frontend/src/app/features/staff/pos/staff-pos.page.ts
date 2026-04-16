@@ -256,8 +256,9 @@ export class StaffPosPage implements OnInit, OnDestroy {
         this.resetPhoneForm();
         this.phoneFormOpen.set(false);
         // Load the new order into the right panel so staff can add items immediately
-        this.currentTable.set(null);  // deselect any table
-        this.order.set(res);          // show the phone order in the order panel
+        this.currentTable.set(null);
+        this.currentExternosOrder.set(res);
+        this.order.set(res);
         this.orderError.set(null);
         this.refreshExternos();
       },

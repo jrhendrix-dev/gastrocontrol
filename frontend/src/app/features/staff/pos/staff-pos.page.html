@@ -21,8 +21,7 @@
       (click)="refreshTables()"
       [disabled]="loadingTables()"
       type="button"
-      *ngIf="!currentTable() && !currentExternosOrder()"
-    >
+      *ngIf="!currentTable() && !currentExternosOrder()">
       {{ loadingTables() ? 'Cargando...' : 'Refrescar' }}
     </button>
 
@@ -32,31 +31,22 @@
         class="btn btn-outline font-semibold flex items-center gap-1.5"
         (click)="closeOrderWorkspace()"
         type="button"
-        title="Volver al selector de mesas sin cancelar el pedido"
-      >
+        title="Volver al selector de mesas sin cancelar el pedido">
         ← Volver
       </button>
       <button
         class="btn btn-outline"
         (click)="cancelOrder()"
         [disabled]="!order() || !canStartOrEdit()"
-        type="button"
-      >
+        type="button">
         Cancelar
       </button>
       <button
         class="btn btn-primary"
         (click)="sendToKitchen()"
         [disabled]="!canSubmitToKitchen()"
-        [title]="
-          !order()
-            ? 'Añade un producto para abrir el ticket'
-            : canSubmitToKitchen()
-              ? 'Enviar a cocina'
-              : 'No disponible en este estado'
-        "
-        type="button"
-      >
+        [title]="!order() ? 'Añade un producto para abrir el ticket' : canSubmitToKitchen() ? 'Enviar a cocina' : 'No disponible en este estado'"
+        type="button">
         Enviar a cocina
       </button>
       <button
@@ -64,8 +54,7 @@
         *ngIf="isServed()"
         (click)="openPaymentModal()"
         type="button"
-        title="El pedido está listo para cobrar"
-      >
+        title="El pedido está listo para cobrar">
         💳 Cobrar
       </button>
     </ng-container>
@@ -73,22 +62,18 @@
 
   <!-- ══════════════════════════════════════════════════════════════════
        VIEW A — Table / Externos selector
-       Visible only when NO table or external order is selected.
   ══════════════════════════════════════════════════════════════════ -->
   <ng-container *ngIf="!currentTable() && !currentExternosOrder()">
     <div class="gc-card p-4">
 
-      <!-- Search bar -->
       <div class="mb-3">
         <input
           class="gc-input max-w-xs"
           placeholder="Buscar mesa..."
           [(ngModel)]="tableQueryValue"
-          (ngModelChange)="onTableQueryChange($event)"
-        />
+          (ngModelChange)="onTableQueryChange($event)" />
       </div>
 
-      <!-- Mesas grid -->
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
         <button
           *ngFor="let t of tables(); trackBy: trackTable"
@@ -96,29 +81,18 @@
           [class.gc-tile-occupied]="!!t.activeOrder"
           [class.gc-tile-selected]="currentTable()?.id === t.id"
           (click)="selectTable(t)"
-          type="button"
-        >
+          type="button">
           <div class="flex items-start justify-between gap-2">
             <div class="font-semibold tracking-tight">{{ t.label }}</div>
             <ng-container *ngIf="t.activeOrder as ao">
-              <span
-                class="gc-chip"
-                [ngClass]="{
-                  'gc-chip-draft':   ao.status === 'DRAFT',
-                  'gc-chip-pending': ao.status === 'PENDING',
-                  'gc-chip-ready':   ao.status === 'READY'
-                }"
-              >
+              <span class="gc-chip" [ngClass]="{'gc-chip-draft': ao.status === 'DRAFT', 'gc-chip-pending': ao.status === 'PENDING', 'gc-chip-ready': ao.status === 'READY'}">
                 {{ ao.status }}
               </span>
             </ng-container>
           </div>
-
           <ng-container *ngIf="t.activeOrder as ao; else free">
             <div class="mt-1 text-xs text-black/60">
-              <span class="gc-money">
-                {{ (ao.totalCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}
-              </span>
+              <span class="gc-money">{{ (ao.totalCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}</span>
             </div>
             <div class="mt-1 text-[11px] text-black/45">Ocupada</div>
           </ng-container>
@@ -130,56 +104,32 @@
 
       <!-- ── Externos section ─────────────────────────────────────── -->
       <div class="border-t border-black/10 pt-4">
-        <button
-          type="button"
-          class="flex w-full items-center justify-between rounded-lg px-1 py-1 transition hover:bg-black/5"
-          (click)="toggleExternosExpanded()"
-        >
+        <div class="flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1">
           <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-black/70">Externos</span>
+            <span class="text-sm font-semibold text-black/70 cursor-pointer select-none" (click)="toggleExternosExpanded()">Externos</span>
             <button
-              class="btn btn-sm gc-chip"
-              style="font-size:0.7rem; padding: 0.15rem 0.5rem;"
-              (click)="$event.stopPropagation(); openNewTelOrder()"
               type="button"
-              title="Nuevo pedido telefónico"
-            >
-              + Tel
+              class="inline-flex items-center gap-1 rounded-full border border-black/20 bg-[#0F2F24] px-2.5 py-0.5 text-[11px] font-semibold text-white transition hover:bg-[#1a4a37] active:scale-[0.97]"
+              (click)="openNewTelOrder()"
+              title="Nuevo pedido por teléfono">
+              📞 Nuevo Tel.
             </button>
-            <button
-              class="btn btn-icon btn-sm btn-outline"
-              (click)="$event.stopPropagation(); refreshExternos()"
-              title="Refrescar externos"
-              type="button"
-            >
-              ↻
-            </button>
+            <button type="button" class="btn btn-icon btn-sm btn-outline" (click)="refreshExternos()" title="Refrescar externos">↻</button>
           </div>
-          <span class="text-xs text-black/40">{{ externosExpanded() ? '▲' : '▼' }}</span>
-        </button>
+          <span class="text-xs text-black/40 cursor-pointer select-none px-1" (click)="toggleExternosExpanded()">{{ externosExpanded() ? '▲' : '▼' }}</span>
+        </div>
 
         <div *ngIf="externosExpanded()" class="mt-3 space-y-2">
           <div *ngIf="externosOrders().length === 0" class="py-3 text-sm text-black/50 text-center">
             Sin pedidos externos activos
           </div>
-
-          <div
-            *ngFor="let eo of externosOrders(); trackBy: trackExternosOrder"
-            class="gc-tile cursor-pointer"
-            (click)="selectExternosOrder(eo)"
-          >
+          <div *ngFor="let eo of externosOrders(); trackBy: trackExternosOrder" class="gc-tile cursor-pointer" (click)="selectExternosOrder(eo)">
             <div class="flex items-start justify-between gap-2">
-              <div class="text-sm font-semibold">
-                #{{ eo.id }} — {{ eo.type === 'TAKE_AWAY' ? 'Recogida' : 'Delivery' }}
-              </div>
+              <div class="text-sm font-semibold">#{{ eo.id }} — {{ eo.type === 'TAKE_AWAY' ? 'Recogida' : 'Delivery' }}</div>
               <span class="gc-chip gc-chip-pending text-[10px]">{{ eo.status }}</span>
             </div>
-            <div class="mt-1 text-xs text-black/60">
-              {{ (eo.totalCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}
-            </div>
-            <div class="mt-1 text-[11px] text-black/45" *ngIf="eo.pickup?.name || eo.delivery?.name">
-              {{ eo.pickup?.name ?? eo.delivery?.name }}
-            </div>
+            <div class="mt-1 text-xs text-black/60">{{ (eo.totalCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}</div>
+            <div class="mt-1 text-[11px] text-black/45" *ngIf="eo.pickup?.name || eo.delivery?.name">{{ eo.pickup?.name ?? eo.delivery?.name }}</div>
           </div>
         </div>
       </div>
@@ -187,21 +137,13 @@
     </div>
   </ng-container>
 
-
   <!-- ══════════════════════════════════════════════════════════════════
        VIEW B — Full-screen order workspace
-       Visible when a table OR an external order is selected.
   ══════════════════════════════════════════════════════════════════ -->
   <ng-container *ngIf="currentTable() || currentExternosOrder()">
 
-    <!-- Error banner -->
-    <div class="gc-panel mb-4 p-3 text-sm text-black/70" *ngIf="orderError()">
-      {{ orderError() }}
-    </div>
-
-    <div *ngIf="loadingOrder()" class="py-6 text-sm text-black/60">
-      Cargando pedido...
-    </div>
+    <div class="gc-panel mb-4 p-3 text-sm text-black/70" *ngIf="orderError()">{{ orderError() }}</div>
+    <div *ngIf="loadingOrder()" class="py-6 text-sm text-black/60">Cargando pedido...</div>
 
     <div class="workspace-grid">
 
@@ -210,179 +152,81 @@
 
         <div class="mb-3 flex items-center justify-between">
           <div class="gc-section-title text-base">Líneas</div>
-          <div class="text-xs text-black/50" *ngIf="order() as o">
-            {{ o.items.length }} item(s)
-          </div>
+          <div class="text-xs text-black/50" *ngIf="order() as o">{{ o.items.length }} item(s)</div>
         </div>
 
         <ng-container *ngIf="order() as o; else noOrderLines">
 
-          <!-- Items list -->
           <div class="space-y-3">
-            <div
-              *ngFor="let i of o.items; trackBy: trackItem"
-              class="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-white/55 p-3"
-            >
+            <div *ngFor="let i of o.items; trackBy: trackItem" class="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-white/55 p-3">
               <div class="min-w-0 pr-2">
                 <div class="font-semibold tracking-tight break-words">{{ i.name }}</div>
                 <div class="mt-0.5 text-xs text-black/60">
-                  <span class="gc-money">
-                    {{ (i.unitPriceCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}
-                  </span>
+                  <span class="gc-money">{{ (i.unitPriceCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}</span>
                   <span class="text-black/40"> · </span>
                   <span class="gc-money">x{{ i.quantity }}</span>
                 </div>
               </div>
-
               <div class="flex shrink-0 items-center gap-2">
-                <button
-                  class="btn btn-outline btn-sm btn-icon"
-                  (click)="dec(i.id)"
-                  [disabled]="!canStartOrEdit()"
-                  type="button"
-                >−</button>
+                <button class="btn btn-outline btn-sm btn-icon" (click)="dec(i.id)" [disabled]="!canStartOrEdit()" type="button">−</button>
                 <span class="w-4 text-center text-sm font-semibold">{{ i.quantity }}</span>
-                <button
-                  class="btn btn-outline btn-sm btn-icon"
-                  (click)="inc(i.id)"
-                  [disabled]="!canStartOrEdit()"
-                  type="button"
-                >+</button>
-                <button
-                  class="btn btn-danger btn-sm btn-icon"
-                  (click)="removeLine(i.id)"
-                  [disabled]="!canStartOrEdit()"
-                  type="button"
-                >×</button>
+                <button class="btn btn-outline btn-sm btn-icon" (click)="inc(i.id)" [disabled]="!canStartOrEdit()" type="button">+</button>
+                <button class="btn btn-danger btn-sm btn-icon" (click)="removeLine(i.id)" [disabled]="!canStartOrEdit()" type="button">×</button>
               </div>
             </div>
           </div>
 
-          <!-- Total -->
           <div class="mt-4 flex items-center justify-between border-t border-black/10 pt-3">
             <span class="text-sm font-semibold text-black/70">Total</span>
-            <span class="gc-money text-base font-bold">
-              {{ (o.totalCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}
-            </span>
+            <span class="gc-money text-base font-bold">{{ (o.totalCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}</span>
           </div>
 
-          <!-- Notes section -->
           <div class="mt-4">
             <div class="mb-2 gc-section-title text-sm">Notas del pedido</div>
 
-            <!-- Existing notes -->
             <div class="mb-3 space-y-2" *ngIf="o.notes.length > 0">
-              <div
-                *ngFor="let n of o.notes; trackBy: trackNote"
-                class="rounded-lg border border-amber-200/60 bg-amber-50/80 px-3 py-2 text-sm"
-              >
+              <div *ngFor="let n of o.notes; trackBy: trackNote" class="rounded-lg border border-amber-200/60 bg-amber-50/80 px-3 py-2 text-sm">
                 <ng-container *ngIf="editingNoteId() !== n.id; else editMode">
                   <div class="flex items-start gap-2">
                     <span class="mt-0.5 shrink-0 text-amber-500">📝</span>
                     <div class="min-w-0 flex-1">
                       <p class="break-words text-black/80">{{ n.note }}</p>
-                      <p class="mt-0.5 text-[11px] text-black/40" *ngIf="n.editedAt">
-                        editado · {{ n.authorRole ?? 'Staff' }}
-                      </p>
-                      <p class="mt-0.5 text-[11px] text-black/40" *ngIf="!n.editedAt">
-                        {{ n.authorRole ?? 'Staff' }}
-                      </p>
+                      <p class="mt-0.5 text-[11px] text-black/40" *ngIf="n.editedAt">editado · {{ n.authorRole ?? 'Staff' }}</p>
+                      <p class="mt-0.5 text-[11px] text-black/40" *ngIf="!n.editedAt">{{ n.authorRole ?? 'Staff' }}</p>
                     </div>
                     <div class="ml-1 flex shrink-0 items-center gap-1">
-                      <button
-                        type="button"
-                        class="rounded p-1 text-black/30 transition hover:bg-amber-100 hover:text-black/60"
-                        (click)="startEditNote(n.id, n.note)"
-                        [disabled]="savingNote() || deletingNote()"
-                        title="Editar nota"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-                        </svg>
+                      <button type="button" class="rounded p-1 text-black/30 transition hover:bg-amber-100 hover:text-black/60" (click)="startEditNote(n.id, n.note)" [disabled]="savingNote() || deletingNote()" title="Editar nota">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
                       </button>
                       <ng-container *ngIf="isDraft() || isPending()">
                         <ng-container *ngIf="confirmDeleteNoteId() === n.id; else normalDelete">
-                          <button
-                            type="button"
-                            class="rounded px-1.5 py-0.5 text-[11px] font-semibold text-white bg-rose-500 hover:bg-rose-600 transition"
-                            (click)="requestDeleteNote(o.id, n.id)"
-                            [disabled]="deletingNote()"
-                            title="Confirmar eliminación"
-                          >
-                            ¿Eliminar?
-                          </button>
-                          <button
-                            type="button"
-                            class="rounded px-1.5 py-0.5 text-[11px] text-black/40 hover:text-black/70 transition"
-                            (click)="confirmDeleteNoteId.set(null)"
-                          >
-                            No
-                          </button>
+                          <button type="button" class="rounded px-1.5 py-0.5 text-[11px] font-semibold text-white bg-rose-500 hover:bg-rose-600 transition" (click)="requestDeleteNote(o.id, n.id)" [disabled]="deletingNote()" title="Confirmar eliminación">¿Eliminar?</button>
+                          <button type="button" class="rounded px-1.5 py-0.5 text-[11px] text-black/40 hover:text-black/70 transition" (click)="confirmDeleteNoteId.set(null)">No</button>
                         </ng-container>
                         <ng-template #normalDelete>
-                          <button
-                            type="button"
-                            class="rounded p-1 text-black/20 transition hover:bg-rose-50 hover:text-rose-400"
-                            (click)="confirmDeleteNoteId.set(n.id)"
-                            [disabled]="savingNote() || deletingNote()"
-                            title="Eliminar nota"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                            </svg>
+                          <button type="button" class="rounded p-1 text-black/20 transition hover:bg-rose-50 hover:text-rose-400" (click)="confirmDeleteNoteId.set(n.id)" [disabled]="savingNote() || deletingNote()" title="Eliminar nota">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                           </button>
                         </ng-template>
                       </ng-container>
                     </div>
                   </div>
                 </ng-container>
-
                 <ng-template #editMode>
                   <div class="flex flex-col gap-2">
-                    <textarea
-                      class="gc-input text-sm"
-                      rows="2"
-                      [(ngModel)]="editingNoteValue"
-                      [disabled]="savingNote()"
-                    ></textarea>
+                    <textarea class="gc-input text-sm" rows="2" [(ngModel)]="editingNoteValue" [disabled]="savingNote()"></textarea>
                     <div class="flex gap-2">
-                      <button
-                        type="button"
-                        class="btn btn-primary btn-sm"
-                        (click)="saveEditNote(o.id, n.id)"
-                        [disabled]="savingNote()"
-                      >
-                        {{ savingNote() ? 'Guardando…' : 'Guardar' }}
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-outline btn-sm"
-                        (click)="cancelEditNote()"
-                        [disabled]="savingNote()"
-                      >
-                        Cancelar
-                      </button>
+                      <button type="button" class="btn btn-primary btn-sm" (click)="saveEditNote(o.id, n.id)" [disabled]="savingNote()">{{ savingNote() ? 'Guardando…' : 'Guardar' }}</button>
+                      <button type="button" class="btn btn-outline btn-sm" (click)="cancelEditNote()" [disabled]="savingNote()">Cancelar</button>
                     </div>
                   </div>
                 </ng-template>
               </div>
             </div>
 
-            <!-- New note input -->
             <div class="flex gap-2">
-              <textarea
-                class="gc-input flex-1 text-sm"
-                rows="2"
-                placeholder="Añadir nota (alergia, petición especial...)"
-                [(ngModel)]="newNoteValue"
-                [disabled]="savingNote()"
-              ></textarea>
-              <button
-                type="button"
-                class="btn btn-outline btn-sm self-end"
-                (click)="addNote(o.id)"
-                [disabled]="savingNote() || !newNoteValue.trim()"
-              >
+              <textarea class="gc-input flex-1 text-sm" rows="2" placeholder="Añadir nota (alergia, petición especial...)" [(ngModel)]="newNoteValue" [disabled]="savingNote()"></textarea>
+              <button type="button" class="btn btn-outline btn-sm self-end" (click)="addNote(o.id)" [disabled]="savingNote() || !newNoteValue.trim()">
                 {{ savingNote() ? '…' : '+ Nota' }}
               </button>
             </div>
@@ -406,61 +250,90 @@
           <div class="text-xs text-black/50" *ngIf="order() && !canStartOrEdit()">Bloqueado por estado</div>
         </div>
 
-        <!-- Product search -->
-        <input
-          class="gc-input mb-3 w-full max-w-sm"
-          placeholder="Buscar producto..."
-          [(ngModel)]="productQueryValue"
-          (ngModelChange)="onProductQueryChange($event)"
-          [disabled]="!canStartOrEdit()"
-        />
+        <input class="gc-input mb-3 w-full max-w-sm" placeholder="Buscar producto..." [(ngModel)]="productQueryValue" (ngModelChange)="onProductQueryChange($event)" [disabled]="!canStartOrEdit()" />
 
-        <!-- Category pills — horizontal scroll row -->
         <div class="pos-category-pills mb-4">
-          <button
-            *ngFor="let c of categories(); trackBy: trackCategory"
-            type="button"
-            class="pos-pill"
-            [class.pos-pill-active]="selectedCategoryId() === c.id"
-            (click)="selectCategory(c.id)"
-            [disabled]="!canStartOrEdit()"
-          >
+          <button *ngFor="let c of categories(); trackBy: trackCategory" type="button" class="pos-pill" [class.pos-pill-active]="selectedCategoryId() === c.id" (click)="selectCategory(c.id)" [disabled]="!canStartOrEdit()">
             {{ c.name }}
           </button>
         </div>
 
-        <!-- Product mini-card grid -->
         <div class="pos-product-grid">
-          <button
-            *ngFor="let p of products(); trackBy: trackProduct"
-            class="pos-product-card"
-            (click)="addProduct(p)"
-            [disabled]="!canStartOrEdit()"
-            type="button"
-          >
+          <button *ngFor="let p of products(); trackBy: trackProduct" class="pos-product-card" (click)="addProduct(p)" [disabled]="!canStartOrEdit()" type="button">
             <div class="pos-card-image">
               <img *ngIf="p.imageUrl" [src]="p.imageUrl" [alt]="p.name" loading="lazy" />
               <span *ngIf="!p.imageUrl" class="pos-card-image-placeholder">🍽️</span>
             </div>
-
             <div class="pos-card-body">
               <div class="pos-card-name">{{ p.name }}</div>
               <div class="pos-card-category">{{ p.categoryName || '' }}</div>
-              <div class="pos-card-price">
-                {{ (p.priceCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}
-              </div>
+              <div class="pos-card-price">{{ (p.priceCents / 100) | currency : 'EUR' : 'symbol' : '1.2-2' }}</div>
             </div>
           </button>
-
-          <div class="py-4 text-sm text-black/55 col-span-full text-center" *ngIf="products().length === 0">
-            Sin resultados.
-          </div>
+          <div class="py-4 text-sm text-black/55 col-span-full text-center" *ngIf="products().length === 0">Sin resultados.</div>
         </div>
 
       </div>
     </div>
   </ng-container>
 
+</div>
+
+<!-- ── Phone order modal ──────────────────────────────────────────── -->
+<div *ngIf="phoneFormOpen()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" (click)="closePhoneForm()">
+  <div class="gc-card w-full max-w-md p-6 space-y-4" (click)="$event.stopPropagation()">
+
+    <h2 class="text-lg font-semibold tracking-tight">📞 Nuevo pedido telefónico</h2>
+
+    <div class="flex gap-2">
+      <button
+        type="button"
+        [ngClass]="phoneOrderType() === 'TAKE_AWAY'
+          ? 'flex-1 rounded-lg border py-2 text-sm font-medium transition border-black bg-black text-white'
+          : 'flex-1 rounded-lg border py-2 text-sm font-medium transition border-black/20 text-black/60'"
+        (click)="phoneOrderType.set('TAKE_AWAY')">🥡 Recogida</button>
+      <button
+        type="button"
+        [ngClass]="phoneOrderType() === 'DELIVERY'
+          ? 'flex-1 rounded-lg border py-2 text-sm font-medium transition border-black bg-black text-white'
+          : 'flex-1 rounded-lg border py-2 text-sm font-medium transition border-black/20 text-black/60'"
+        (click)="phoneOrderType.set('DELIVERY')">🛵 Delivery</button>
+    </div>
+
+    <div>
+      <label class="mb-1 block text-xs font-semibold text-black/60">Nombre *</label>
+      <input class="gc-input" type="text" placeholder="Nombre del cliente" [(ngModel)]="phoneName" />
+    </div>
+
+    <div>
+      <label class="mb-1 block text-xs font-semibold text-black/60">Teléfono</label>
+      <input class="gc-input" type="tel" placeholder="Opcional" [(ngModel)]="phonePhone" />
+    </div>
+
+    <ng-container *ngIf="phoneOrderType() === 'DELIVERY'">
+      <div>
+        <label class="mb-1 block text-xs font-semibold text-black/60">Dirección *</label>
+        <input class="gc-input" type="text" placeholder="Calle y número" [(ngModel)]="phoneAddress" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-semibold text-black/60">Ciudad *</label>
+        <input class="gc-input" type="text" placeholder="Ciudad" [(ngModel)]="phoneCity" />
+      </div>
+    </ng-container>
+
+    <div>
+      <label class="mb-1 block text-xs font-semibold text-black/60">Notas</label>
+      <textarea class="gc-input" rows="2" placeholder="Alergias, instrucciones especiales…" [(ngModel)]="phoneNotes"></textarea>
+    </div>
+
+    <div *ngIf="phoneOrderError()" class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 border border-rose-200">{{ phoneOrderError() }}</div>
+
+    <div class="flex justify-end gap-2 pt-1">
+      <button type="button" class="btn btn-outline" (click)="closePhoneForm()">Cancelar</button>
+      <button type="button" class="btn btn-primary" [disabled]="phoneOrderLoading()" (click)="submitPhoneOrder()">{{ phoneOrderLoading() ? 'Creando…' : 'Crear pedido' }}</button>
+    </div>
+
+  </div>
 </div>
 
 <!-- ── Payment modal ──────────────────────────────────────────────── -->
@@ -470,5 +343,4 @@
   [loading]="paymentLoading()"
   [error]="paymentError()"
   (confirmed)="externosPayingOrder() ? onExternosPaymentConfirmed($event) : onPaymentConfirmed($event)"
-  (closed)="showPaymentModal.set(false); externosPayingOrder.set(null)"
-/>
+  (closed)="showPaymentModal.set(false); externosPayingOrder.set(null)" />
