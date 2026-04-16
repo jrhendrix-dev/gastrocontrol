@@ -52,10 +52,8 @@ import { DemoBannerComponent } from '../features/demo/demo-banner.component';
 })
 export class AppShellComponent {
   drawer = inject(DrawerService);
-  private auth = inject(AuthService);
 
   constructor() {
-    // hydrate session on hard refresh
-    this.auth.bootstrap().subscribe();
+    // bootstrap is now handled by App (root) — no longer needed here
   }
 }

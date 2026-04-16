@@ -1,26 +1,15 @@
-// src/app/features/admin/admin.guard.ts
-import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
-import { AuthService } from '@app/app/core/auth/auth.service';
+import { CanActivateFn } from '@angular/router';
+import { waitForAuthThen } from '../../core/auth/auth.guard.utils';
 
 /**
- * Route guard that allows access to the admin panel for MANAGER and ADMIN roles only.
+ * Route guard for admin/manager routes (/admin/*).
  *
- * Redirects unauthenticated users to /login and unauthorised users to /.
+ * Allows: MANAGER, ADMIN.
+ * Redirects unauthenticated users to /login.
+ * Redirects unauthorised users to /.
+ *
+ * Waits for the auth bootstrap to complete before evaluating,
+ * preventing false logouts on page refresh.
  */
-export const adminGuard: CanActivateFn = () => {
-  const auth   = inject(AuthService);
-  const router = inject(Router);
-
-  if (!auth.loggedIn()) {
-    return router.createUrlTree(['/login']);
-  }
-
-  const roles = auth.roles();
-  const allowed = roles.includes('ROLE_ADMIN') || roles.includes('ROLE_MANAGER');
-  if (!allowed) {
-    return router.createUrlTree(['/']);
-  }
-
-  return true;
-};
+export const adminGuard: CanActivateFn = () =>
+  waitForAuthThen(['ROLE_ADMIN', 'ROLE_MANAGER']);

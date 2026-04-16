@@ -84,6 +84,10 @@ export class DemoBannerComponent implements OnInit, OnDestroy {
   private timer: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
+    // Only run the expiry timer if a demo session is actually active.
+    // Without this guard, the timer fires for real users and calls
+    // exitDemo() which clears auth and redirects to landing page.
+    if (!this.demoStore.isActive()) return;
     this.updateDisplay();
     this.timer = setInterval(() => {
       this.demoStore.tick(); // ← triggers signal recomputation

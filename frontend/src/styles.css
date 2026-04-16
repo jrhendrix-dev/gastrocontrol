@@ -234,7 +234,11 @@ body {
   }
 
   .pos-pill-active {
-    @apply ring-2 ring-black/20 bg-white/80 text-black font-semibold;
+    background: var(--gc-brand);
+    color: var(--gc-accent);
+    font-weight: 600;
+    border-color: var(--gc-brand);
+    box-shadow: 0 0 0 2px var(--gc-brand);
   }
 
   /* ── Product mini-card grid ─────────────────────────────────── */
