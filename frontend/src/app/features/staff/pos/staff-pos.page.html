@@ -4,45 +4,55 @@
   <!-- ══════════════════════════════════════════════════════════════════
        Header — always visible
   ══════════════════════════════════════════════════════════════════ -->
-  <div class="pos-header mb-4 flex items-center gap-3">
+  <div class="pos-header mb-4">
 
-    <div class="flex-1 min-w-0">
-      <h1 class="text-2xl font-semibold tracking-tight">POS</h1>
-      <p class="text-sm text-black/60" *ngIf="!currentTable() && !currentExternosOrder()">
-        Abrir mesa → añadir productos → enviar a cocina
-      </p>
-      <p class="text-sm text-black/60" *ngIf="currentTable()">
-        Mesa <strong>{{ currentTable()!.label }}</strong> · Estado: <strong>{{ order()?.status ?? 'Sin pedido' }}</strong>
-      </p>
+    <!-- Title row -->
+    <div class="flex items-center gap-3">
+      <div class="flex-1 min-w-0">
+        <h1 class="text-2xl font-semibold tracking-tight">POS</h1>
+        <p class="text-sm text-black/60" *ngIf="!currentTable() && !currentExternosOrder()">
+          Abrir mesa → añadir productos → enviar a cocina
+        </p>
+        <p class="text-sm text-black/60" *ngIf="currentTable()">
+          Mesa <strong>{{ currentTable()!.label }}</strong>
+          <span class="hidden sm:inline"> · Estado: <strong>{{ order()?.status ?? 'Sin pedido' }}</strong></span>
+        </p>
+      </div>
+
+      <button
+        class="btn btn-outline shrink-0"
+        (click)="refreshTables()"
+        [disabled]="loadingTables()"
+        type="button"
+        *ngIf="!currentTable() && !currentExternosOrder()">
+        {{ loadingTables() ? 'Cargando...' : 'Refrescar' }}
+      </button>
     </div>
 
-    <button
-      class="btn btn-outline"
-      (click)="refreshTables()"
-      [disabled]="loadingTables()"
-      type="button"
-      *ngIf="!currentTable() && !currentExternosOrder()">
-      {{ loadingTables() ? 'Cargando...' : 'Refrescar' }}
-    </button>
+    <!-- Status — mobile only, shown below title when in workspace -->
+    <p class="mt-1 text-sm text-black/60 sm:hidden" *ngIf="currentTable()">
+      Estado: <strong>{{ order()?.status ?? 'Sin pedido' }}</strong>
+    </p>
 
-    <!-- Action buttons shown in workspace mode -->
-    <ng-container *ngIf="currentTable() || currentExternosOrder()">
+    <!-- Action buttons — own row on mobile, inline on sm+ -->
+    <div class="mt-2 flex flex-wrap items-center gap-2 sm:mt-0 sm:flex sm:flex-row"
+         *ngIf="currentTable() || currentExternosOrder()">
       <button
-        class="btn btn-outline font-semibold flex items-center gap-1.5"
+        class="btn btn-outline font-semibold flex items-center gap-1.5 shrink-0"
         (click)="closeOrderWorkspace()"
         type="button"
         title="Volver al selector de mesas sin cancelar el pedido">
         ← Volver
       </button>
       <button
-        class="btn btn-outline"
+        class="btn btn-outline shrink-0"
         (click)="cancelOrder()"
         [disabled]="!order() || !canStartOrEdit()"
         type="button">
         Cancelar
       </button>
       <button
-        class="btn btn-primary"
+        class="btn btn-primary shrink-0"
         (click)="sendToKitchen()"
         [disabled]="!canSubmitToKitchen()"
         [title]="!order() ? 'Añade un producto para abrir el ticket' : canSubmitToKitchen() ? 'Enviar a cocina' : 'No disponible en este estado'"
@@ -50,14 +60,15 @@
         Enviar a cocina
       </button>
       <button
-        class="btn btn-success"
+        class="btn btn-success shrink-0"
         *ngIf="isServed()"
         (click)="openPaymentModal()"
         type="button"
         title="El pedido está listo para cobrar">
         💳 Cobrar
       </button>
-    </ng-container>
+    </div>
+
   </div>
 
   <!-- ══════════════════════════════════════════════════════════════════

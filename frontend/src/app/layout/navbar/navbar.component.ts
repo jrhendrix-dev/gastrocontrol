@@ -42,19 +42,14 @@ export class NavbarComponent {
   open        = false;
   accountOpen = false;
 
-  /**
-   * True when the app is mounted at /gastrocontrol/ (portfolio demo mode).
-   * Drives the "Volver al portfolio" button visibility.
-   */
-  readonly isPortfolioDemo = document.querySelector('base')
-    ?.getAttribute('href')
-    ?.includes('/gastrocontrol') ?? false;
-
-  /** URL to return to the main portfolio page. */
-  readonly portfolioUrl = '/';
-
   private modeSig = signal<NavMode | null>(null);
   mode = computed<NavMode>(() => this.modeSig() ?? this.inferredMode());
+
+  /** Returns only the first name for compact navbar display. */
+  readonly firstName = computed<string>(() => {
+    const full = this.auth.fullName();
+    return full ? full.split(' ')[0] : '';
+  });
 
   private readonly items: NavItem[] = [
     // Public/customer

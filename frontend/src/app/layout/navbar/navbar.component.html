@@ -4,18 +4,20 @@
   <ng-container *ngIf="visibleItems() as items">
 
     <!-- Desktop -->
-    <div class="mx-auto hidden max-w-6xl grid-cols-[300px_1fr_220px] items-center gap-4 px-4 py-5 md:grid">
+    <div class="mx-auto hidden max-w-6xl items-center gap-2 px-4 py-4 md:grid
+            grid-cols-[minmax(180px,280px)_1fr_minmax(0,auto)]">
 
       <!-- Logo -->
-      <a routerLink="/" class="flex items-center" (click)="goHome($event)">
+      <a routerLink="/" class="flex min-w-0 items-center" (click)="goHome($event)">
         <img src="assets/pics/logo.png" alt="GastroControl"
-             class="h-12 w-auto md:h-[64px] lg:h-[72px] xl:h-[80px] object-contain" />
+             class="h-10 w-auto md:h-14 lg:h-16 xl:h-20 object-contain" />
       </a>
 
       <!-- Center links -->
       <ul *ngIf="auth.authReady()"
-          class="flex items-center justify-center gap-14 text-[15.5px] font-medium tracking-wide uppercase">
-        <li *ngFor="let item of items; trackBy: trackItem" class="group relative">
+          class="flex min-w-0 items-center justify-center gap-6 lg:gap-14
+             text-[13px] lg:text-[15.5px] font-medium tracking-wide uppercase">
+        <li *ngFor="let item of items; trackBy: trackItem" class="group relative shrink-0">
           <a [routerLink]="item.route"
              routerLinkActive="opacity-100"
              class="relative px-2 py-1 transition-colors opacity-90 hover:opacity-100"
@@ -28,24 +30,11 @@
       </ul>
 
       <!-- Right side -->
-      <div class="flex items-center justify-end gap-3">
-
-        <!-- Portfolio return link — only shown in demo mode -->
-        <a *ngIf="isPortfolioDemo"
-           href="/jonathan-hendrix.dev"
-           class="flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-semibold transition hover:bg-white/10 whitespace-nowrap"
-           style="border-color: rgba(255,255,255,0.4)"
-           title="Volver al portfolio de Jonathan Hendrix">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-          </svg>
-          Portfolio
-        </a>
+      <div class="flex min-w-0 items-center justify-end gap-2 lg:gap-3">
 
         <!-- Demo mode toggle -->
-        <button class="rounded-md border px-3 py-2 font-semibold transition hover:bg-white/10"
+        <button class="rounded-md border px-2 py-1.5 text-xs lg:text-sm font-semibold
+                   transition hover:bg-white/10 whitespace-nowrap shrink-0"
                 style="border-color: rgba(255,255,255,0.6)"
                 (click)="toggleModeForDemo()"
                 [attr.title]="'Modo actual: ' + mode()">
@@ -55,7 +44,8 @@
         <!-- Logged out -->
         <ng-container *ngIf="!auth.loggedIn()">
           <a routerLink="/login"
-             class="rounded-md px-3 py-2 font-semibold transition whitespace-nowrap"
+             class="rounded-md px-2 py-1.5 text-xs lg:text-sm font-semibold
+                transition whitespace-nowrap shrink-0"
              style="background: var(--gc-accent); color: #000;"
              (click)="closeMenus()">
             Iniciar sesión
@@ -63,18 +53,20 @@
         </ng-container>
 
         <!-- Logged in account -->
-        <div *ngIf="auth.loggedIn()" class="relative">
+        <div *ngIf="auth.loggedIn()" class="relative shrink-0">
           <button
-            class="relative flex items-center gap-2 px-2 py-1 transition-colors hover:opacity-100 opacity-90"
+            class="relative flex items-center gap-1.5 px-2 py-1 transition-colors
+               hover:opacity-100 opacity-90 text-xs lg:text-sm"
             (click)="toggleAccountMenu()"
             aria-haspopup="menu"
             [attr.aria-expanded]="accountOpen"
           >
-            <span>{{ auth.fullName() }}</span>
+            <span class="max-w-[100px] truncate lg:max-w-none">{{ firstName() }}</span>
             <span class="mt-1 inline-block border-x-transparent border-t-8 border-b-0 border-l-8 border-r-8"
                   style="border-top-color: var(--gc-accent);"></span>
           </button>
 
+          <!-- Account dropdown -->
           <div *ngIf="accountOpen"
                class="absolute right-0 z-20 mt-3 w-72 overflow-hidden rounded-md shadow-lg ring-1 ring-black/10"
                style="background: var(--gc-brand); color: var(--gc-surface);">
@@ -103,6 +95,24 @@
             </button>
           </div>
         </div>
+
+        <!-- Divider -->
+        <span class="h-5 w-px shrink-0" style="background: rgba(255,255,255,0.25)"></span>
+
+        <!-- Portfolio return link — always visible -->
+        <a href="https://jonathan-hendrix.dev"
+           class="flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs lg:text-sm
+                  font-semibold transition hover:bg-white/10 whitespace-nowrap shrink-0"
+           style="border-color: rgba(255,255,255,0.4)"
+           title="Volver al portfolio de Jonathan Hendrix">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          <span class="hidden lg:inline">Portfolio</span>
+        </a>
+
       </div>
     </div>
 
@@ -130,9 +140,8 @@
     <!-- Mobile menu -->
     <div *ngIf="open" class="border-t border-white/10 md:hidden">
 
-      <!-- Portfolio return link — mobile -->
-      <a *ngIf="isPortfolioDemo"
-         href="https://jonathan-hendrix.dev"
+      <!-- Portfolio return link — mobile, always visible -->
+      <a href="https://jonathan-hendrix.dev"
          class="flex items-center gap-2 px-4 py-3 hover:bg-white/10 border-b border-white/10">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
              viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -161,13 +170,6 @@
          class="block px-4 py-3 hover:bg-white/10"
          (click)="open=false">
         Mi perfil
-      </a>
-
-      <a *ngIf="auth.loggedIn() && panelRoute() as pr"
-         [routerLink]="pr"
-         class="block px-4 py-3 hover:bg-white/10"
-         (click)="open=false">
-        {{ panelLabel() }}
       </a>
 
       <button *ngIf="auth.loggedIn()"
