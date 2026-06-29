@@ -57,16 +57,17 @@ services:
       STRIPE_API_KEY: ${STRIPE_API_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       STRIPE_CURRENCY: ${STRIPE_CURRENCY:-eur}
-      STRIPE_VERIFY_WEBHOOK_SIGNATURE: "false"
-      STRIPE_CHECKOUT_SUCCESS_URL: ${STRIPE_CHECKOUT_SUCCESS_URL:-https://jonathan-hendrix.dev/gastrocontrol/order/confirm}
+      STRIPE_VERIFY_WEBHOOK_SIGNATURE: ${STRIPE_VERIFY_WEBHOOK_SIGNATURE:-false}
+      STRIPE_CHECKOUT_SUCCESS_URL: ${STRIPE_CHECKOUT_SUCCESS_URL:-https://jonathan-hendrix.dev/gastrocontrol/order/confirm?session_id={CHECKOUT_SESSION_ID}}
       STRIPE_CHECKOUT_CANCEL_URL: ${STRIPE_CHECKOUT_CANCEL_URL:-https://jonathan-hendrix.dev/gastrocontrol/order}
       APP_PUBLIC_BASE_URL: ${APP_PUBLIC_BASE_URL:-https://jonathan-hendrix.dev/gastrocontrol}
       APP_FRONTEND_BASE_URL: ${APP_FRONTEND_BASE_URL:-https://jonathan-hendrix.dev/gastrocontrol}
       APP_UPLOADS_DIR: /app/uploads
       APP_UPLOADS_URL_PREFIX: /gastrocontrol/uploads
 
+    # In the backend service, add volumes:
     volumes:
-      - /var/www/gastrocontrol/uploads:/app/uploads
+      - gastro_uploads:/app/uploads
     networks:
       - gastrocontrol_internal   # talks to MySQL
       - bfe_network              # reachable by bfe_web Nginx
@@ -83,3 +84,6 @@ networks:
 
 volumes:
   gastro_mysql_data:
+  gastro_uploads:
+    external: true
+    name: gastrocontrol_gastro_uploads
