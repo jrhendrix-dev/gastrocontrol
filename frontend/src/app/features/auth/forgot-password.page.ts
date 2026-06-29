@@ -31,7 +31,7 @@ import { environment } from '@app/environment/environment';
           </div>
           <button type="submit" [disabled]="form.invalid || loading()"
                   class="w-full py-2.5 rounded-lg text-sm font-semibold"
-                  style="background:var(--gc-green);color:#fff;opacity:{{form.invalid||loading()?0.5:1}}">
+                  style="background:var(--gc-green);color:#fff;" [style.opacity]="form.invalid || loading() ? 0.5 : 1">
             {{ loading() ? 'Enviando…' : 'Enviar enlace' }}
           </button>
         </form>
